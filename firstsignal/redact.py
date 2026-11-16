@@ -75,7 +75,8 @@ class Redactor:
         """Replace whole private-key blocks. Call on the full text before splitting it into lines."""
         if not self.enabled or not text or "PRIVATE KEY-----" not in text:
             return text
-        return _KEY_BLOCK.sub("<REDACTED_PRIVATE_KEY>", text)
+        # keep the line count so line numbers after the block stay right
+        return _KEY_BLOCK.sub(lambda m: "<REDACTED_PRIVATE_KEY>" + "\n" * m.group(0).count("\n"), text)
 
 
 def _entropy(token: str) -> float:
