@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Support bundles, stack traces, stricter redaction and published accuracy. Reports now say "earliest observed matching signature" and never claim a root cause outside the labelled AI hypothesis.
 
+### Added (platforms)
+- Podman: `firstsignal podman --container ...`, and `docker` falls back to Podman when Docker is not installed (`--engine auto|docker|podman`); suggested commands use the engine that was found
+- CI runs the tests inside Red Hat UBI 9, Rocky Linux 8 and 9, and Fedora, as a non-root user, with Python 3.11 from `dnf` on the RHEL family
+- README: install steps for RHEL, Rocky, AlmaLinux and CentOS Stream
+
+### Fixed (platforms)
+- `journal` without permission to read the system journal: journalctl exits 0 with no entries, which was reported as a clean run. It is now an error that says to use `sudo` or join the `systemd-journal` group
+- An unreadable log file (such as `/var/log/messages` on RHEL) now says to try `sudo`
+
 ### Removed
 - The former name is gone: the `incopilot` command, `INCOPILOT_*` environment variables, `incopilot.toml` and the `~/.incopilot` history fallback. Use `firstsignal`, `FIRSTSIGNAL_*`, `firstsignal.toml` and `~/.firstsignal`
 

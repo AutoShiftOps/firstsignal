@@ -97,7 +97,8 @@ def test_k8s_source_and_next_commands(monkeypatch, capsys):
 
 def test_bundle_merges_sources(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(collectors, "from_journal", lambda unit, since, t: "ERROR connection refused\n")
-    monkeypatch.setattr(collectors, "from_docker", lambda c, since, t: "ERROR Out of memory\n")
+    monkeypatch.setattr(collectors, "from_docker", lambda c, since, t, engine="docker": "ERROR Out of memory\n")
+    monkeypatch.setattr(collectors, "container_engine", lambda preferred="auto": "docker")
     log = tmp_path / "x.log"
     log.write_text("ERROR No space left on device\n")
     assert cli.run(["bundle", "--unit", "nginx", "--container", "api", "--path", str(log),
@@ -136,3 +137,20 @@ def test_log_content_is_not_interpreted_as_markup(tmp_path, capsys):
     log = tmp_path / "a.log"
     log.write_text("ERROR [bold red]fatal[/] [link=http://evil]x[/link]\n")
     assert cli.run(["file", "--path", str(log)]) == cli.EXIT_OK
+
+
+def test_podman_source_and_engine(monkeypatch, capsys):
+    seen = []
+
+    def fake(container, since, timeout, engine):
+        seen.append(engine)
+        return "2026-11-16T10:00:00Z ERROR connection refused\n"
+
+    monkeypatch.setattr(collectors, "from_docker", fake)
+    monkeypatch.setattr(collectors.shutil, "which", lambda name: f"/usr/bin/{name}" if name == "podman" else None)
+    assert cli.run(["podman", "--container", "api", "--json", "--no-write", "--no-history"]) == cli.EXIT_OK
+    report = json.loads(capsys.readouterr().out)
+    assert seen == ["podman"]
+    assert any(c["cmd"].startswith("podman inspect") for c in report["safe_next_commands"])
+    cli.run(["docker", "--container", "api", "--json", "--no-write", "--no-history"])   # docker absent: podman
+    assert seen[-1] == "podman"

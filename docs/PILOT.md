@@ -29,7 +29,7 @@ more than twenty polished ones. The pilot is free, nothing is sold, and you can 
 
 ## Five-minute start
 
-Requires Python 3.10 or later on Linux, macOS or Windows.
+Requires Python 3.10 or later on Linux, macOS or Windows. On RHEL, Rocky or AlmaLinux 8 and 9 the system Python is too old: run `sudo dnf install -y python3.11 python3.11-pip` and use `python3.11 -m pip install --user "firstsignal>=0.3.0"`.
 
 ```bash
 pipx install "firstsignal>=0.3.0"        # or: pip install "firstsignal>=0.3.0"
@@ -46,7 +46,7 @@ Then on your own logs, pick the line that fits:
 firstsignal archive ticket-4821.zip --packs all        # a customer support bundle
 firstsignal file --path /var/log/app.log --packs all   # a log file, .gz, or '-' for stdin
 firstsignal k8s --pod deploy/api -n prod --since 30m   # Kubernetes
-firstsignal docker --container api --since 1h          # Docker
+firstsignal docker --container api --since 1h          # Docker (or Podman, used when Docker is absent)
 firstsignal journal --unit nginx --since "30 min ago"  # systemd
 ```
 

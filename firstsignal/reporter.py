@@ -79,10 +79,11 @@ def safe_next_commands(ctx: dict, analysis: Analysis | None = None) -> list[tupl
         ]
     if "docker" in ctx:
         name = shlex.quote(ctx["docker"]["container"])
+        cli = ctx["docker"].get("engine", "docker")
         cmds += [
             ("Container state and restart count",
-             f"docker inspect --format '{{{{.State.Status}}}} restarts={{{{.RestartCount}}}}' {name}"),
-            ("Container resource snapshot", f"docker stats --no-stream {name}"),
+             f"{cli} inspect --format '{{{{.State.Status}}}} restarts={{{{.RestartCount}}}}' {name}"),
+            ("Container resource snapshot", f"{cli} stats --no-stream {name}"),
         ]
     if "k8s" in ctx:
         k = ctx["k8s"]

@@ -42,17 +42,26 @@ The report shows that slow queries came first, then the connection pool filled, 
 
 ### Platforms
 
-Pure Python with one dependency, so it installs on Linux, macOS and Windows (Python 3.10 to 3.13). CI runs the tests on all three. What differs is which log sources each system has:
+Pure Python with one dependency, so it installs on Linux, macOS and Windows (Python 3.10 to 3.13). CI runs the tests on Ubuntu, macOS and Windows, and inside Red Hat UBI 9, Rocky Linux 8 and 9, and Fedora. What differs is which log sources each system has:
 
 | Source | Linux | macOS | Windows |
 |---|---|---|---|
 | `file`, stdin, `bundle --path` | yes | yes | yes |
-| `docker` | yes | yes, with Docker Desktop | yes, with Docker Desktop |
+| `docker` / `podman` | yes; Podman is used when Docker is not installed | yes, with Docker Desktop or Podman | yes, with Docker Desktop or Podman |
 | `k8s` | yes | yes, with `kubectl` configured | yes, with `kubectl` configured |
 | `journal` (systemd) | yes | no systemd | no systemd |
 | `watch`, `--html`, history, `--ai` | yes | yes | yes |
 
 `docker` and `k8s` call the `docker` and `kubectl` commands, so they work from a laptop pointed at a remote host or cluster. On Windows the history file is not restricted to your account, because Windows does not apply POSIX file modes; it holds pattern names, counts, targets and your notes, never log text.
+
+**RHEL, Rocky, AlmaLinux and CentOS Stream.** The system `python3` is too old (3.6 on version 8, 3.9 on version 9), so `pip install firstsignal` reports "no matching distribution". Install Python 3.11 from the distribution first:
+
+```bash
+sudo dnf install -y python3.11 python3.11-pip
+python3.11 -m pip install --user firstsignal
+```
+
+Fedora's own `python3` is new enough. Two more things differ from Ubuntu: containers usually run under Podman (`firstsignal podman --container api`, or `docker`, which falls back to Podman), and `/var/log/messages` is readable by root only, so use `sudo` for it. Reading the system journal needs `sudo` or membership of the `wheel` or `systemd-journal` group; firstsignal says so instead of reporting an empty journal as healthy.
 
 **Windows install tips.** If `pip install` fails with `Failed to write executable` or `WinError 2`, Python is installed system-wide and pip cannot write to its `Scripts` folder. Use one of:
 
@@ -106,8 +115,9 @@ firstsignal history forget 8b21d0aa
 # systemd journal
 firstsignal journal --unit nginx --since "30 min ago"
 
-# Docker container (stdout and stderr)
+# Docker or Podman container (stdout and stderr); Podman is used when Docker is absent
 firstsignal docker --container my-api --since 1h
+firstsignal podman --container my-api --since 1h
 
 # Kubernetes: a pod, a workload, or a label selector
 firstsignal k8s --pod deploy/api -n prod --since 30m

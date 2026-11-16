@@ -105,7 +105,9 @@ def build_parser() -> argparse.ArgumentParser:
     b = sub.add_parser("bundle", parents=[common], help="several sources analyzed as one timeline")
     b.add_argument("--unit", help="systemd unit")
     b.add_argument("--since-journal", default="30 min ago")
-    b.add_argument("--container", help="docker container")
+    b.add_argument("--container", help="container name or ID (docker or podman)")
+    b.add_argument("--engine", choices=["auto", *collectors.ENGINES], default="auto",
+                   help="container CLI to use (default: docker if installed, else podman)")
     b.add_argument("--since-docker", default="1h")
     b.add_argument("--pod", help="Kubernetes pod or deploy/name")
     b.add_argument("-n", "--namespace")
@@ -140,7 +142,10 @@ def _add_sources(sub, parents, watch: bool = False) -> None:
     j = sub.add_parser("journal", parents=parents, help="systemd journal (journalctl)")
     j.add_argument("--unit", required=True, help="systemd unit, e.g. nginx")
 
-    d = sub.add_parser("docker", parents=parents, help="docker container logs")
+    d = sub.add_parser("docker", parents=parents, aliases=["podman"],
+                       help="container logs, with docker or podman (podman is used when docker is absent)")
+    d.add_argument("--engine", choices=["auto", *collectors.ENGINES], default="auto",
+                   help="container CLI to use (default: docker if installed, else podman)")
     d.add_argument("--container", required=True, help="container name or ID")
 
     k = sub.add_parser("k8s", parents=parents, help="Kubernetes pod logs (kubectl)")
@@ -206,9 +211,11 @@ def collect(args) -> tuple[str, str, str, dict]:
     if args.source == "journal":
         return (collectors.from_journal(args.unit, args.since, t), args.unit, args.since,
                 {"journal": {"unit": args.unit}})
-    if args.source == "docker":
-        return (collectors.from_docker(args.container, args.since, t), args.container, args.since,
-                {"docker": {"container": args.container}})
+    if args.source in ("docker", "podman"):
+        engine = collectors.container_engine("podman" if args.source == "podman" and args.engine == "auto"
+                                             else args.engine)
+        return (collectors.from_docker(args.container, args.since, t, engine), args.container, args.since,
+                {"docker": {"container": args.container, "engine": engine}})
     if args.source == "k8s":
         text = collectors.from_k8s(args.pod, args.selector, args.namespace, args.container, args.since,
                                    args.previous, args.context, args.tail, t)
@@ -233,10 +240,12 @@ def collect(args) -> tuple[str, str, str, dict]:
         windows.append(f"journal: {args.since_journal}")
         ctx["journal"] = {"unit": args.unit}
     if args.container:
-        parts.append((f"docker {args.container}", collectors.from_docker(args.container, args.since_docker, t)))
+        engine = collectors.container_engine(args.engine)
+        parts.append((f"{engine} {args.container}",
+                      collectors.from_docker(args.container, args.since_docker, t, engine)))
         targets.append(args.container)
         windows.append(f"docker: {args.since_docker}")
-        ctx["docker"] = {"container": args.container}
+        ctx["docker"] = {"container": args.container, "engine": engine}
     if args.pod:
         parts.append((f"k8s {args.pod}", collectors.from_k8s(
             pod=args.pod, namespace=args.namespace, since=args.since_k8s, timeout=t)))
