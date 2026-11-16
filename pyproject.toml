@@ -40,7 +40,6 @@ Issues = "https://github.com/AutoShiftOps/firstsignal/issues"
 
 [project.scripts]
 firstsignal = "firstsignal.cli:main"
-incopilot = "firstsignal.cli:main"  # former name, kept for one release
 
 [tool.setuptools]
 packages = ["firstsignal"]

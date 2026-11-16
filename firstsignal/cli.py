@@ -534,9 +534,6 @@ def run(argv=None) -> int:
 
 def main() -> None:
     """Console-script entry point."""
-    if os.path.basename(sys.argv[0]).startswith("incopilot"):
-        print("note: incopilot is now firstsignal. The incopilot command still works but will be "
-              "removed in a future release.", file=sys.stderr)
     sys.exit(run())
 
 

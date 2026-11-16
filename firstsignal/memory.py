@@ -16,7 +16,6 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from . import _compat
 from .analyzer import Analysis
 from .patterns import SEVERITY_RANK
 
@@ -54,15 +53,9 @@ class Match:
 
 
 def default_path() -> Path:
-    """Where history lives: $FIRSTSIGNAL_HISTORY, or ~/.firstsignal/history.jsonl.
-
-    History written under the old name (~/.incopilot) keeps being used until a new file exists.
-    """
-    env = _compat.getenv("HISTORY")
-    if env:
-        return Path(env)
-    return _compat.prefer_existing(Path.home() / ".firstsignal" / "history.jsonl",
-                                   Path.home() / f".{_compat.OLD_NAME}" / "history.jsonl")
+    """Where history lives: $FIRSTSIGNAL_HISTORY, or ~/.firstsignal/history.jsonl."""
+    env = os.environ.get("FIRSTSIGNAL_HISTORY")
+    return Path(env) if env else Path.home() / ".firstsignal" / "history.jsonl"
 
 
 def _now() -> datetime:

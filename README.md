@@ -4,8 +4,6 @@
 
 # firstsignal
 
-> Formerly **incopilot**. The `incopilot` command, `INCOPILOT_*` variables, `incopilot.toml` and `~/.incopilot` history still work for one release.
-
 Read-only incident triage for logs. One command collects logs from **systemd, Docker, Kubernetes, a file, or a customer support bundle**, maps what it finds to the **Four Golden Signals**, and writes a report with the order things went wrong and safe checks to run next.
 
 [![CI](https://github.com/AutoShiftOps/firstsignal/actions/workflows/ci.yml/badge.svg)](https://github.com/AutoShiftOps/firstsignal/actions/workflows/ci.yml)
