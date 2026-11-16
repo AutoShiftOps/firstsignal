@@ -17,7 +17,7 @@ Include the following information:
 ## Security Considerations
 
 ### What firstsignal does
-- Reads logs through `journalctl`, `docker logs`, `kubectl logs`, a file you name, or a support bundle (`archive`)
+- Reads logs through `journalctl`, `docker logs` or `podman logs`, `kubectl logs`, a file you name, or a support bundle (`archive`)
 - Runs those tools with a fixed argument list and no shell; values that look like options are rejected
 - Masks secrets in every output by default (terminal, Markdown, JSON, HTML, the ticket note, the AI payload): passwords, tokens and keys, credentials in URLs, `Authorization` headers at any length, whole private-key blocks, emails, and long random-looking tokens found by an entropy check. In `archive` mode IP addresses are masked too
 - Writes `report.md` and `report.json` (plus `report.html` with `--html`, and `ticket-note.md` for `archive` runs) to the directory you choose

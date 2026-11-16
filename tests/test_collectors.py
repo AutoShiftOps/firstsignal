@@ -32,10 +32,64 @@ def test_journal_command(calls):
 
 
 def test_docker_keeps_stderr(calls):
-    collectors.from_docker("api", "1h")
+    collectors.from_docker("api", "1h", engine="docker")
     cmd, kw = calls[0]
     assert cmd == ["docker", "logs", "--timestamps", "--since", "1h", "api"]
     assert kw["stderr"] == subprocess.STDOUT
+
+
+@pytest.mark.parametrize("installed,expected", [
+    ({"docker", "podman"}, "docker"),
+    ({"podman"}, "podman"),           # RHEL and Fedora ship podman, not docker
+])
+def test_container_engine_auto(monkeypatch, installed, expected):
+    monkeypatch.setattr(collectors.shutil, "which", lambda name: f"/usr/bin/{name}" if name in installed else None)
+    assert collectors.container_engine() == expected
+
+
+def test_container_engine_missing(monkeypatch):
+    monkeypatch.setattr(collectors.shutil, "which", lambda name: None)
+    with pytest.raises(CollectorError, match="neither docker nor podman"):
+        collectors.container_engine()
+
+
+def test_podman_uses_the_same_flags(calls):
+    collectors.from_docker("api", "1h", engine="podman")
+    assert calls[0][0] == ["podman", "logs", "--timestamps", "--since", "1h", "api"]
+
+
+def test_journal_without_permission_is_an_error(monkeypatch):
+    hint = ("Hint: You are currently not seeing messages from other users and the system.\n"
+            "      Users in groups 'adm', 'systemd-journal', 'wheel' can see all messages.\n")
+    monkeypatch.setattr(collectors.subprocess, "run",
+                        lambda cmd, **kw: FakeProc(stdout="-- No entries --\n", stderr=hint))
+    with pytest.raises(CollectorError, match="may not read the system journal"):
+        collectors.from_journal("nginx")
+
+
+def test_journal_entries_with_a_hint_are_kept(monkeypatch):
+    line = "2026-11-16T10:00:00+0000 host app[1]: ERROR x\n"
+    monkeypatch.setattr(collectors.subprocess, "run",
+                        lambda cmd, **kw: FakeProc(stdout=line, stderr="Hint: You are currently not seeing messages"))
+    assert collectors.from_journal("app") == line
+
+
+def test_unreadable_file_says_how_to_fix_it(tmp_path, monkeypatch):
+    import builtins
+    import errno
+
+    path = tmp_path / "messages"
+    path.write_text("x\n")
+    real_open = builtins.open
+
+    def denied(file, *a, **kw):
+        if str(file) == str(path):
+            raise PermissionError(errno.EACCES, "Permission denied", str(file))
+        return real_open(file, *a, **kw)
+
+    monkeypatch.setattr(builtins, "open", denied)
+    with pytest.raises(CollectorError, match="try sudo"):
+        collectors.from_file(str(path))
 
 
 def test_k8s_pod_command(calls):
@@ -87,7 +141,7 @@ def test_timeout(monkeypatch):
         raise subprocess.TimeoutExpired(cmd, kw["timeout"])
     monkeypatch.setattr(collectors.subprocess, "run", slow)
     with pytest.raises(CollectorError, match="did not finish"):
-        collectors.from_docker("api", timeout=1)
+        collectors.from_docker("api", timeout=1, engine="docker")
 
 
 def test_nonzero_exit_reports_last_stderr_line(monkeypatch):

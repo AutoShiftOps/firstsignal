@@ -44,9 +44,36 @@ jobs:
       - name: Smoke test the installed command
         run: firstsignal file --path examples/checkout-incident.log --no-write
 
+  linux-distros:
+    name: test (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # RHEL family: python3 is too old (3.6 on 8, 3.9 on 9), so Python 3.11 comes from dnf
+          - { name: "rhel ubi9, python 3.11", image: "registry.access.redhat.com/ubi9/ubi:latest", python: python3.11 }
+          - { name: "rocky 9, python 3.11", image: "rockylinux:9", python: python3.11 }
+          - { name: "rocky 8, python 3.11", image: "rockylinux:8", python: python3.11 }
+          - { name: "fedora", image: "fedora:latest", python: python3 }
+    steps:
+      - name: Install Python and git with dnf
+        run: dnf install -y ${{ matrix.python }} ${{ matrix.python }}-pip git shadow-utils util-linux
+      - uses: actions/checkout@v4
+      # run as an ordinary user, as people do, so file permissions behave as they will for them
+      - name: Install and test as a non-root user
+        run: |
+          useradd -m tester
+          chown -R tester .
+          su tester -c "${{ matrix.python }} -m venv /home/tester/venv && \
+            /home/tester/venv/bin/pip install -q -e '.[dev]' && \
+            /home/tester/venv/bin/pytest -q && \
+            /home/tester/venv/bin/firstsignal file --path examples/checkout-incident.log --no-write"
+
   build:
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint, test, linux-distros]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -203,13 +203,14 @@ def test_cli_watch_fails_fast_and_gives_up_after_repeated_errors(tmp_path, monke
     assert run_watch(["file", "--path", "x.log.gz"]) == cli.EXIT_ERROR
     calls = []
 
-    def flaky(container, since, t):
+    def flaky(container, since, t, engine="docker"):
         calls.append(1)
         if len(calls) > 1:
             raise CollectorError("'docker' exited 1: No such container")
         return ""
 
     monkeypatch.setattr(collectors, "from_docker", flaky)
+    monkeypatch.setattr(collectors, "container_engine", lambda preferred="auto": "docker")
     assert run_watch(["docker", "--container", "api", "--no-write", "-q"]) == cli.EXIT_ERROR
     assert "source unavailable" in capsys.readouterr().err and len(calls) == 6
 
