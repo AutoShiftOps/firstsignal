@@ -1,0 +1,32 @@
+{
+  "description": "Customer support bundle: the database disk filled first (syslog and Postgres), the app then saw refused connections and returned 5xx. File order puts the app first; time order must not.",
+  "mode": "archive",
+  "packs": [
+    "all"
+  ],
+  "truth": {
+    "findings": [
+      "conn_refused",
+      "disk_full",
+      "http_5xx",
+      "panic_fatal",
+      "pg_unavailable"
+    ],
+    "first": "disk_full"
+  },
+  "must_not_leak": [
+    "abc123",
+    "198.51.100.7"
+  ],
+  "notes": "Syslog lines carry no year; the year is inferred, which does not change the order here because the Postgres log also shows the disk filling before the app errors. 'database system is shut down' means PostgreSQL is not accepting connections.",
+  "snapshot": {
+    "findings": {
+      "conn_refused": 1,
+      "disk_full": 2,
+      "http_5xx": 2,
+      "panic_fatal": 1
+    },
+    "first": "disk_full",
+    "severity": "critical"
+  }
+}

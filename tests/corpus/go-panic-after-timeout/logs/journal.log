@@ -1,0 +1,10 @@
+2026-10-04T22:40:11.208+00:00 api-7 inventory[911]: 2026/10/04 22:40:11 GET /stock/sku-4410 200 8ms
+2026-10-04T22:40:15.774+00:00 api-7 inventory[911]: 2026/10/04 22:40:15 fetch pricing: dial tcp 10.0.8.21:7000: i/o timeout
+2026-10-04T22:40:16.102+00:00 api-7 inventory[911]: 2026/10/04 22:40:16 fetch pricing: dial tcp 10.0.8.21:7000: i/o timeout
+2026-10-04T22:40:16.330+00:00 api-7 inventory[911]: panic: runtime error: invalid memory address or nil pointer dereference
+2026-10-04T22:40:16.330+00:00 api-7 inventory[911]: [signal SIGSEGV: segmentation violation code=0x1 addr=0x18 pc=0x6b2f1d]
+2026-10-04T22:40:16.331+00:00 api-7 inventory[911]: goroutine 77 [running]:
+2026-10-04T22:40:16.331+00:00 api-7 inventory[911]: main.(*Handler).price(0x0, {0xc0001a2000, 0x8})
+2026-10-04T22:40:16.331+00:00 api-7 inventory[911]: 	/src/inventory/handler.go:142 +0x1d
+2026-10-04T22:40:16.402+00:00 api-7 systemd[1]: inventory.service: Main process exited, code=exited, status=2/INVALIDARGUMENT
+2026-10-04T22:40:21.633+00:00 api-7 systemd[1]: inventory.service: Scheduled restart job, restart counter is at 3.

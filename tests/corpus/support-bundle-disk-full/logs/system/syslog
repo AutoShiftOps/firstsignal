@@ -1,0 +1,2 @@
+Oct 11 07:44:51 db01 kernel: EXT4-fs warning (device nvme1n1p1): ext4_dx_add_entry: Directory index full!
+Oct 11 07:44:52 db01 postgres[811]: ERROR: could not extend file "base/16384/2619": No space left on device

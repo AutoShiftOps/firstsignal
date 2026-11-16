@@ -1,0 +1,7 @@
+2026-10-10 05:00:12,004 INFO  [Consumer clientId=billing-1, groupId=billing] Successfully joined group with generation 41
+2026-10-10 05:02:40,551 WARN  [Producer clientId=billing-out] Got error produce response with correlation id 8812 on topic-partition invoices-3, retrying. Error: NOT_LEADER_OR_FOLLOWER
+2026-10-10 05:04:09,317 WARN  [Consumer clientId=billing-1, groupId=billing] consumer poll timeout has expired. This means the time between subsequent calls to poll() was longer than the configured max.poll.interval.ms
+2026-10-10 05:04:09,402 ERROR [billing-worker] Offset commit failed
+org.apache.kafka.clients.consumer.CommitFailedException: Commit cannot be completed since the group has already rebalanced and assigned the partitions to another member.
+	at org.apache.kafka.clients.consumer.internals.ConsumerCoordinator.sendOffsetCommitRequest(ConsumerCoordinator.java:1268)
+2026-10-10 05:06:30,010 ERROR [billing-out] org.apache.kafka.common.errors.RecordTooLargeException: The message is 1612844 bytes when serialized which is larger than 1048576

@@ -1,0 +1,10 @@
+{"level":30,"time":1759489200123,"pid":19,"hostname":"api-2","msg":"server listening on :3000"}
+{"level":50,"time":1759489262411,"pid":19,"hostname":"api-2","msg":"query failed","err":"connect ECONNREFUSED 10.0.5.12:5432"}
+{"level":50,"time":1759489262650,"pid":19,"hostname":"api-2","msg":"query failed","err":"connect ECONNREFUSED 10.0.5.12:5432"}
+(node:19) UnhandledPromiseRejectionWarning: Error: connect ECONNREFUSED 10.0.5.12:5432
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16)
+{"level":40,"time":1759489301002,"pid":19,"hostname":"api-2","msg":"request slow","responseTime":4210}
+
+<--- Last few GCs --->
+[19:0x5f3c2d0]   812440 ms: Mark-Compact 2041.7 (2083.1) -> 2039.9 (2084.3) MB, 1874.21 / 0.00 ms
+FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory

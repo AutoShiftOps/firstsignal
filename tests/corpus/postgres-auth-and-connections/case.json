@@ -1,0 +1,26 @@
+{
+  "description": "PostgreSQL server log: a client with a rotated password is rejected repeatedly, an unknown database, then the server runs out of connection slots.",
+  "mode": "file",
+  "packs": [
+    "all"
+  ],
+  "truth": {
+    "findings": [
+      "auth_failure",
+      "pg_connection_rejected",
+      "pg_too_many_clients"
+    ],
+    "first": "auth_failure"
+  },
+  "must_not_leak": [],
+  "notes": "FATAL ends one session in PostgreSQL; nothing here is a crash.",
+  "snapshot": {
+    "findings": {
+      "auth_failure": 2,
+      "pg_connection_rejected": 3,
+      "pg_too_many_clients": 2
+    },
+    "first": "auth_failure",
+    "severity": "critical"
+  }
+}

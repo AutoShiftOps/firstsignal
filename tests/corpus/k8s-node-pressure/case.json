@@ -1,0 +1,28 @@
+{
+  "description": "kubectl events and app logs: a node under memory pressure evicts pods, readiness probes fail, an image tag is missing. The app's own 'evicted keys' cache line is not a pod eviction.",
+  "mode": "file",
+  "packs": [
+    "all"
+  ],
+  "truth": {
+    "findings": [
+      "http_5xx",
+      "k8s_evicted",
+      "k8s_image_pull",
+      "k8s_probe_failed"
+    ],
+    "first": "k8s_evicted"
+  },
+  "must_not_leak": [],
+  "notes": "The app answered the readiness probe with 503.",
+  "snapshot": {
+    "findings": {
+      "http_5xx": 1,
+      "k8s_evicted": 1,
+      "k8s_image_pull": 1,
+      "k8s_probe_failed": 1
+    },
+    "first": "k8s_evicted",
+    "severity": "high"
+  }
+}

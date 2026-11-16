@@ -1,0 +1,25 @@
+{
+  "description": "Go HTTP service: dial i/o timeouts to an upstream, then a nil-pointer panic that kills the process; systemd restarts it.",
+  "mode": "file",
+  "packs": [
+    "all"
+  ],
+  "truth": {
+    "findings": [
+      "panic_fatal",
+      "restart_loop",
+      "timeout"
+    ],
+    "first": "timeout"
+  },
+  "must_not_leak": [],
+  "notes": "journald prefixes every line, so goroutine lines are separate events here. The panic is still one crash. systemd 'restart counter is at 3' is a restart loop.",
+  "snapshot": {
+    "findings": {
+      "panic_fatal": 2,
+      "timeout": 2
+    },
+    "first": "timeout",
+    "severity": "critical"
+  }
+}

@@ -1,0 +1,4 @@
+2026/10/05 03:12:40 [warn] 31#31: *88121 an upstream response is buffered to a temporary file /var/cache/nginx/proxy_temp/4/12/0000000124 while reading upstream
+2026/10/05 03:14:02 [error] 31#31: *88310 upstream timed out (110: Connection timed out) while reading response header from upstream, client: 203.0.113.40, server: shop.example, request: "GET /api/catalog HTTP/1.1", upstream: "http://10.0.2.5:8080/api/catalog"
+2026/10/05 03:14:09 [error] 31#31: *88331 upstream timed out (110: Connection timed out) while reading response header from upstream, client: 203.0.113.41, server: shop.example, request: "GET /api/catalog HTTP/1.1", upstream: "http://10.0.2.5:8080/api/catalog"
+2026/10/05 03:15:30 [error] 31#31: *88402 connect() failed (111: Connection refused) while connecting to upstream, client: 203.0.113.40, server: shop.example, request: "GET / HTTP/1.1", upstream: "http://10.0.2.5:8080/"

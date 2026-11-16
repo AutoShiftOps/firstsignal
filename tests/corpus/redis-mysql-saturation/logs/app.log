@@ -1,0 +1,3 @@
+2026-10-09T16:21:31Z ERROR [cart] redis SET failed: OOM command not allowed when used memory > 'maxmemory'.
+2026-10-09T16:21:44Z ERROR [orders] (1205, 'Lock wait timeout exceeded; try restarting transaction')
+2026-10-09T16:21:52Z ERROR [orders] (1213, 'Deadlock found when trying to get lock; try restarting transaction')

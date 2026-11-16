@@ -1,0 +1,4 @@
+2026-10-11T07:44:30Z INFO  [api] request ok GET /status 200
+2026-10-11T07:45:12Z ERROR [api] db connect failed: connection refused (db.internal:5432) Authorization: Bearer abc123
+2026-10-11T07:45:13Z ERROR [api] HTTP 503 Service Unavailable returned to client 198.51.100.7
+2026-10-11T07:45:20Z ERROR [api] HTTP 503 Service Unavailable returned to client 198.51.100.9

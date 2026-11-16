@@ -1,0 +1,28 @@
+{
+  "description": "Redis hits maxmemory and refuses writes; MySQL lock waits and a deadlock follow as the app retries.",
+  "mode": "archive",
+  "packs": [
+    "all"
+  ],
+  "truth": {
+    "findings": [
+      "mysql_deadlock",
+      "mysql_lock_wait",
+      "redis_oom",
+      "timeout"
+    ],
+    "first": "redis_oom"
+  },
+  "must_not_leak": [],
+  "notes": "Redis's own timestamp format ('09 Oct 2026 16:21:30.551') is not parsed; those lines carry no finding here. 'Lock wait timeout exceeded' is a timeout.",
+  "snapshot": {
+    "findings": {
+      "mysql_deadlock": 1,
+      "mysql_lock_wait": 1,
+      "redis_oom": 1,
+      "timeout": 1
+    },
+    "first": "redis_oom",
+    "severity": "critical"
+  }
+}

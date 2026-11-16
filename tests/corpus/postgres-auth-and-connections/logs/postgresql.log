@@ -1,0 +1,7 @@
+2026-10-06 11:00:01.112 UTC [2231] LOG:  checkpoint starting: time
+2026-10-06 11:02:14.540 UTC [3410] FATAL:  password authentication failed for user "reporting"
+2026-10-06 11:02:14.541 UTC [3410] DETAIL:  Connection matched pg_hba.conf line 98: "host all all 10.0.0.0/8 scram-sha-256"
+2026-10-06 11:02:19.877 UTC [3415] FATAL:  password authentication failed for user "reporting"
+2026-10-06 11:03:40.002 UTC [3460] FATAL:  database "orders_v2" does not exist
+2026-10-06 11:09:58.731 UTC [4102] FATAL:  sorry, too many clients already
+2026-10-06 11:09:59.004 UTC [4106] FATAL:  remaining connection slots are reserved for non-replication superuser connections

@@ -1,0 +1,24 @@
+2026-10-02 14:03:11,402 INFO  [main] c.a.orders.OrdersApplication - Started OrdersApplication in 6.21 seconds
+2026-10-02 14:07:55,018 WARN  [http-nio-8080-exec-14] o.h.engine.jdbc.spi.SqlExceptionHelper - SQL Error: 0, SQLState: null
+2026-10-02 14:07:55,019 ERROR [http-nio-8080-exec-14] o.h.engine.jdbc.spi.SqlExceptionHelper - HikariPool-1 - Connection is not available, request timed out after 30000ms.
+2026-10-02 14:07:55,031 ERROR [http-nio-8080-exec-14] c.a.orders.web.OrderController - GET /api/orders/88231 failed
+org.springframework.dao.DataAccessResourceFailureException: Unable to acquire JDBC Connection
+	at org.springframework.orm.jpa.vendor.HibernateJpaDialect.convertHibernateAccessException(HibernateJpaDialect.java:275)
+	at com.acme.orders.service.OrderService.find(OrderService.java:58)
+Caused by: org.hibernate.exception.JDBCConnectionException: Unable to acquire JDBC Connection
+	at org.hibernate.exception.internal.SQLStateConversionDelegate.convert(SQLStateConversionDelegate.java:112)
+	... 87 common frames omitted
+Caused by: java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available, request timed out after 30000ms.
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:696)
+	... 101 common frames omitted
+2026-10-02 14:08:20,447 ERROR [HikariPool-1 connection adder] com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Exception during pool initialization.
+org.postgresql.util.PSQLException: Connection to orders-db.internal:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:319)
+Caused by: java.net.ConnectException: Connection refused
+	at java.base/sun.nio.ch.Net.connect0(Native Method)
+	... 32 common frames omitted
+2026-10-02 14:08:21,902 WARN  [http-nio-8080-exec-3] c.a.orders.web.GatewayClient - upstream returned HTTP 502 Bad Gateway for /api/payments
+2026-10-02 14:09:44,610 ERROR [http-nio-8080-exec-9] c.a.orders.web.OrderController - GET /api/orders failed
+java.lang.OutOfMemoryError: Java heap space
+	at java.base/java.util.Arrays.copyOf(Arrays.java:3537)
+	at com.acme.orders.export.CsvExporter.write(CsvExporter.java:91)
