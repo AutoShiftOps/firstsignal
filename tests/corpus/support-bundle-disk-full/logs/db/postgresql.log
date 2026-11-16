@@ -1,0 +1,3 @@
+2026-10-11 07:44:58.120 UTC [811] PANIC:  could not write to file "pg_wal/xlogtemp.811": No space left on device
+2026-10-11 07:44:58.300 UTC [77] LOG:  server process (PID 811) was terminated by signal 6: Aborted
+2026-10-11 07:45:01.004 UTC [77] LOG:  database system is shut down

@@ -44,3 +44,6 @@ venv.bak/
 .pytest_cache/
 .ruff_cache/
 !examples/*.log
+
+# regression corpus samples are test data, not output
+!tests/corpus/**/logs/**

@@ -1,0 +1,9 @@
+2026-10-08T10:00:00Z INFO  [boot] slow query log enabled, threshold 2000ms
+2026-10-08T10:00:00Z INFO  [boot] retry policy: transient errors are non-fatal, max 3 attempts
+2026-10-08T10:00:01Z INFO  [boot] basic authentication required for /admin
+2026-10-08T10:00:01Z INFO  [boot] timeout settings: connect=2s read=10s
+2026-10-08T10:00:05Z INFO  [http] GET /healthz 200 1ms kube-probe/1.30
+2026-10-08T10:00:10Z INFO  [cache] evicted 400 expired sessions
+2026-10-08T10:00:12Z INFO  [http] GET /api/orders 200 41ms
+2026-10-08T10:00:13Z DEBUG [db] pool stats: active=3 idle=7 max=10
+2026-10-08T10:00:15Z INFO  [http] GET /healthz 200 1ms kube-probe/1.30

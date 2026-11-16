@@ -1,0 +1,19 @@
+[2026-10-03 09:12:01 +0000] [41] [INFO] Booting worker with pid: 41
+2026-10-03 09:15:22,881 ERROR django.request: Internal Server Error: /api/cart/
+Traceback (most recent call last):
+  File "/app/cart/cache.py", line 44, in get_cart
+    return client.get(key)
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 353, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to redis-cart:6379. Connection refused.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/app/cart/views.py", line 27, in cart_view
+    cart = get_cart(request.session.session_key)
+TimeoutError: cart lookup timed out after 2.0s
+2026-10-03 09:15:22,884 WARNING gunicorn.access: 10.4.2.17 "GET /api/cart/ HTTP/1.1" 500 145
+2026-10-03 09:15:40,002 ERROR django.request: Service Unavailable: /api/checkout/
+2026-10-03 09:15:40,003 WARNING gunicorn.access: 10.4.2.19 "POST /api/checkout/ HTTP/1.1" 503 98
+2026-10-03 09:16:01,000 INFO cart.health: health check ok

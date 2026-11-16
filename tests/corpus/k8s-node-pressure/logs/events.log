@@ -1,0 +1,7 @@
+2026-10-07T08:31:02Z Normal   Scheduled         pod/web-5f7d9c-xk2lp  Successfully assigned prod/web-5f7d9c-xk2lp to node-b
+2026-10-07T08:31:40Z INFO cache: evicted 12000 keys from LRU (maxmemory policy)
+2026-10-07T08:33:15Z Warning  Evicted           pod/web-5f7d9c-q8m2z  The node was low on resource: memory. Container web was using 1824Mi, request is 512Mi.
+2026-10-07T08:33:51Z Warning  Unhealthy         pod/web-5f7d9c-xk2lp  Readiness probe failed: HTTP probe failed with statuscode: 503
+2026-10-07T08:35:12Z Warning  Failed            pod/web-7c88b4-n1v7d  Failed to pull image "registry.example/web:1.42.0": not found
+2026-10-07T08:35:12Z Warning  Failed            pod/web-7c88b4-n1v7d  Error: ErrImagePull
+2026-10-07T08:35:40Z Normal   BackOff           pod/web-7c88b4-n1v7d  Back-off pulling image "registry.example/web:1.42.0"
