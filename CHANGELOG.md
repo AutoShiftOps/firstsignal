@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Redaction: a private key in the logs is now masked as a whole block. Before, only the `BEGIN` line was masked and the key itself was printed
 - Redaction: `Authorization` headers are masked at any length (`Bearer abc123` was not masked)
 - Redaction: "basic authentication" and similar prose are no longer masked by mistake
+- Incident history: a re-run whose findings grow or shrink stays one incident (it used to need exactly the same patterns). Merged records keep every pattern seen, the highest count for each, the worst severity, and what came first
+- Incident history: a record with a timestamp far in the future no longer absorbs every later run; up to 5 minutes of clock skew is tolerated, and `last_seen_at` never moves back
+- Incident history: timestamps without a zone are read as UTC instead of crashing comparisons; unreadable lines are kept in the file and reported by `history list`, not silently dropped on the next write
+- Incident history: runs writing at the same time no longer overwrite each other (lock file plus a unique temporary file)
+- `watch` saves count-only growth to history, not only new patterns
+- Reports say what the counts cover: the whole input, its most recent part, or the busiest window of a watch. `stats.truncated` is now right for `file` runs on files larger than `--max-bytes`
 
 ## [0.2.1] - 2026-11-12
 

@@ -97,7 +97,7 @@ firstsignal history note 8b21d0aa "what fixed it"
 firstsignal history forget 8b21d0aa
 ```
 
-- **Local and private.** History is one file, `~/.firstsignal/history.jsonl`, readable only by you. Set `FIRSTSIGNAL_HISTORY` or `--history FILE` to move it, for example into a repo your team shares.
+- **Local and private.** History is one file, `~/.firstsignal/history.jsonl`, readable only by you. Set `FIRSTSIGNAL_HISTORY` or `--history FILE` to move it, for example into a repo your team shares. Runs that write at the same time take turns through a `history.jsonl.lock` file next to it, so no record is lost; add it to `.gitignore` if the history lives in a repo.
 - **No log text is stored.** Only pattern names, counts, the target, the time and your note.
 - **Matching is deterministic.** The same two incidents always get the same score. No model is involved.
 - Re-running during the same incident updates one record instead of creating many. `--no-history` turns it off.
