@@ -40,6 +40,12 @@ Earliest observed matching signature: Slowness reported (where to start looking,
 
 The report shows that slow queries came first, then the connection pool filled, then timeouts and 5xx, and the out-of-memory kill came last. That ordering is the point: the loudest error is often not where things started.
 
+<p align="center"><img src="https://raw.githubusercontent.com/AutoShiftOps/firstsignal/main/docs/img/first-vs-loudest.png" alt="Timeline of the example incident: slowness reported at 09:41:07 is the first signal; the out-of-memory kill at 09:41:31, the most severe finding, came 24 seconds later" width="820"></p>
+
+The full terminal output, including a match with an incident from 12 days earlier and the fix noted then:
+
+<p align="center"><img src="https://raw.githubusercontent.com/AutoShiftOps/firstsignal/main/docs/img/terminal-triage.png" alt="firstsignal terminal output: findings table, golden signals, order of first appearance, earliest observed matching signature, and a Seen before match with the fix noted" width="700"></p>
+
 ### Platforms
 
 Pure Python with one dependency, so it installs on Linux, macOS and Windows (Python 3.10 to 3.13). CI runs the tests on Ubuntu, macOS and Windows, and inside Red Hat UBI 9, Rocky Linux 8 and 9, and Fedora. What differs is which log sources each system has:
@@ -83,6 +89,8 @@ firstsignal file --path examples/checkout-incident.log --html
 `--html` writes a self-contained `report.html`: overall severity, the Four Golden Signals, a timeline of when each problem first appeared, findings, and the checks to run next. Nothing is loaded from a server and the report data stays in the file.
 
 The terminal output already shows severity, golden signals, findings and the order of first appearance. Use `--html` when you need to share the result with people who were not at the terminal, for example in an incident channel or a postmortem.
+
+<p align="center"><img src="https://raw.githubusercontent.com/AutoShiftOps/firstsignal/main/docs/img/report-html.png" alt="firstsignal HTML report: overall severity, the Four Golden Signals, a timeline of first appearance, Seen before and suggested next steps" width="760"></p>
 
 A [live example](https://firstsignal.autoshiftops.com/viewer.html) is on the website.
 
@@ -137,6 +145,9 @@ firstsignal archive ticket-4821.zip
 ### Support bundles
 
 `archive` is for log bundles customers attach to support tickets. It reads every log file inside without extracting anything, and tells you where to look:
+
+<p align="center"><img src="https://raw.githubusercontent.com/AutoShiftOps/firstsignal/main/docs/img/terminal-support-bundle.png" alt="firstsignal archive on a support bundle: disk full in the PostgreSQL log came first, then the database stopped accepting connections, then the app saw refused connections and returned 5xx; every finding cites file and line" width="700"></p>
+
 
 - **Every finding cites `file:line`**, so you can quote the evidence back. Line numbers stay right even when only the end of a large file is read.
 - **Findings are ordered by time across files**, not by file order. ISO, nginx, syslog, Apache access log and JSON epoch times are understood. Times without a zone are taken as UTC, and the report says so; syslog times carry no year, so the current year is assumed.
@@ -220,6 +231,8 @@ Exit codes: `0` success, `1` could not collect or write, `2` usage error, `3` `-
 # fail a post-deploy check if the new pods log anything high or critical
 firstsignal k8s -l app=api -n prod --since 10m --fail-on high --quiet
 ```
+
+[`examples/ci/post-deploy-triage.yml`](examples/ci/post-deploy-triage.yml) is a GitHub Actions workflow that runs after each deploy, fails on high or critical findings, and puts the report in the job summary.
 
 `systemd/` has an example service and timer for scheduled runs. A `Dockerfile` is included for piping logs through a container:
 
