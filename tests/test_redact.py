@@ -43,7 +43,7 @@ KEY_BLOCK = (
 def test_whole_private_key_block_is_masked():
     out = Redactor()("loaded key:\n" + KEY_BLOCK + "\nstarting")
     assert "MIIEow" not in out and "VTLw7o" not in out and "END RSA" not in out
-    assert out == "loaded key:\n<REDACTED_PRIVATE_KEY>\nstarting"
+    assert out == "loaded key:\n<REDACTED_PRIVATE_KEY>\n\n\n\nstarting"  # line count kept
 
 
 def test_key_body_lines_masked_even_without_markers():

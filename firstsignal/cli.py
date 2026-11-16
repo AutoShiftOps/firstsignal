@@ -15,15 +15,24 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from . import __version__, ai, collectors, memory, settings
-from .analyzer import Analysis, analyze
+from . import __version__, ai, archive, collectors, memory, settings
+from .analyzer import Analysis, analyze, earliest_finding, time_order
 from .html import render_html
 from .patterns import PACKS, SEVERITY_RANK, resolve_packs
 from .redact import Redactor
-from .reporter import build_meta, build_report_json, build_report_md, safe_next_commands, write_outputs
+from .reporter import (
+    build_meta,
+    build_report_json,
+    build_report_md,
+    build_ticket_note,
+    earliest_how,
+    safe_next_commands,
+    write_outputs,
+)
 from .watch import MAX_FAILURES, FileFollower, Watcher
 
 EXIT_OK, EXIT_ERROR, EXIT_THRESHOLD = 0, 1, 3
+ARCHIVE_BUDGET = 4   # a bundle may analyze up to this many times --max-bytes in total
 TIMELINE_ROWS = 10
 _CLOCK = re.compile(r"\d{2}:\d{2}:\d{2}")
 
@@ -102,6 +111,16 @@ def build_parser() -> argparse.ArgumentParser:
     b.add_argument("-n", "--namespace")
     b.add_argument("--since-k8s", default="30m")
     b.add_argument("--path", action="append", default=[], help="log file (repeatable)")
+
+    a = sub.add_parser("archive", parents=[common],
+                       help="a support bundle (.zip, .tar, .tar.gz): every log file inside, read without extracting")
+    a.add_argument("bundle_path", metavar="BUNDLE", help="the .zip, .tar, .tar.gz or .tgz file")
+    a.add_argument("--include", action="append", default=[], metavar="GLOB",
+                   help="also analyze files matching this pattern, e.g. '*.yaml' (repeatable)")
+    a.add_argument("--max-files", type=int, default=archive.DEFAULT_MAX_FILES,
+                   help=f"most log files to analyze (default: {archive.DEFAULT_MAX_FILES})")
+    a.add_argument("--max-total-mb", type=int, default=archive.DEFAULT_MAX_TOTAL_BYTES // (1024 * 1024),
+                   help="stop if the bundle unpacks to more than this (default: 1024)")
 
     h = sub.add_parser("history", help="list remembered incidents, add a note, or forget one")
     h.add_argument("--history", metavar="FILE", help="history file (default: ~/.firstsignal/history.jsonl)")
@@ -196,6 +215,12 @@ def collect(args) -> tuple[str, str, str, dict]:
             "k8s": {"pod": args.pod, "selector": args.selector, "namespace": args.namespace}}
     if args.source == "file":
         return collectors.from_file(args.path, args.max_bytes), args.path, "n/a", {}
+    if args.source == "archive":
+        result = archive.read_archive(
+            args.bundle_path, max_bytes_per_file=args.max_bytes, analysis_budget=args.max_bytes * ARCHIVE_BUDGET,
+            max_files=args.max_files, max_total_bytes=args.max_total_mb * 1024 * 1024, include=args.include)
+        return (collectors.join_sources(result.parts), result.archive, "n/a",
+                {"archive": {"path": args.bundle_path, "result": result}})
 
     parts, targets, windows, ctx = [], [], [], {}
     if args.unit:
@@ -245,11 +270,15 @@ def render(console: Console, analysis: Analysis, ai_result, paths) -> None:
     console.print(f"{st['lines_analyzed']} lines analyzed, {st['lines_matched']} matched, "
                   f"{st['lines_noise_filtered']} filtered as noise", highlight=False)
     if analysis.findings:
+        located = any(f.first_location for f in analysis.findings.values())
         table = Table(title="Findings", title_justify="left")
         for col, kw in (("Finding", {}), ("Signal", {}), ("Severity", {}), ("Count", {"justify": "right"})):
             table.add_column(col, **kw)
+        if located:
+            table.add_column("First match")
         for f in analysis.findings.values():
-            table.add_row(Text(f.title), f.signal, Text(f.severity, style=_STYLE[f.severity]), str(f.count))
+            row = [Text(f.title), f.signal, Text(f.severity, style=_STYLE[f.severity]), str(f.count)]
+            table.add_row(*row, *([Text(f.first_location or "n/a")] if located else []))
         console.print(table)
         if analysis.signals:
             line = Text("Golden signals: ")
@@ -271,6 +300,14 @@ def render(console: Console, analysis: Analysis, ai_result, paths) -> None:
             if len(analysis.order) > TIMELINE_ROWS:
                 console.print(f"... and {len(analysis.order) - TIMELINE_ROWS} more in the report", highlight=False)
             console.print(Text(f"First to appear: {first.title}"))
+        arc = st.get("archive")
+        if arc:
+            key, info = earliest_finding(analysis)
+            f = analysis.findings[key]
+            console.print(Text(f"Earliest observed matching signature: {f.title} at "
+                               f"{f.first_location or 'n/a'} ({earliest_how(f, info)})"))
+            console.print(Text(f"{len(arc['files'])} log file(s) analyzed, {len(arc['skipped'])} skipped "
+                               "(listed in the report)"))
     else:
         console.print("No known failure pattern matched.")
     if ai_result is not None:
@@ -418,10 +455,25 @@ def run(argv=None) -> int:
         err.print(Text(f"firstsignal: {exc}", style="red"))
         return EXIT_ERROR
 
-    text, truncated = collectors.tail_bytes(text, args.max_bytes)
-    redactor = Redactor(enabled=not args.no_redact, redact_ips=args.redact_ips, extra=cfg.redact_extra)
-    analysis = analyze(text, patterns, noise=cfg.noise, redactor=redactor)
+    bundle = ctx.get("archive", {}).get("result")
+    if bundle is None:
+        text, truncated = collectors.tail_bytes(text, args.max_bytes)
+    else:
+        truncated = any(f.truncated for f in bundle.files)  # limits were applied per file while reading
+    # customer bundles mask IP addresses too
+    redactor = Redactor(enabled=not args.no_redact, redact_ips=args.redact_ips or bundle is not None,
+                        extra=cfg.redact_extra)
+    analysis = analyze(text, patterns, noise=cfg.noise, redactor=redactor, track_locations=bundle is not None,
+                       line_offsets=bundle.line_offsets if bundle else None)
     analysis.stats["truncated"] = truncated
+    if bundle is not None:
+        analysis.order = time_order(analysis)[0]  # across files, text order is not time order
+        analysis.stats["archive"] = {
+            "files": [{"name": redactor(f.name), "bytes": f.bytes_read, "truncated": f.truncated}
+                      for f in bundle.files],
+            "skipped": [{"name": redactor(n), "reason": r} for n, r in bundle.skipped],
+            "total_mb": round(bundle.total_bytes / (1024 * 1024), 1),
+        }
 
     meta = build_meta(args.source, target, since)
     ai_result = None
@@ -443,13 +495,14 @@ def run(argv=None) -> int:
             err.print(Text(f"firstsignal: history not updated: {exc}", style="yellow"))
     seen = memory.matches_as_dicts(matches)
 
-    commands = safe_next_commands(ctx)
+    commands = safe_next_commands(ctx, analysis)
     report = build_report_json(meta, analysis, commands, ai_result, seen)
     paths = None
     if not args.no_write:
         try:
             paths = write_outputs(args.out_dir, build_report_md(meta, analysis, commands, ai_result, seen), report,
-                                  render_html(report) if args.html else None)
+                                  render_html(report) if args.html else None,
+                                  build_ticket_note(meta, analysis) if bundle is not None else None)
         except OSError as exc:
             err.print(Text(f"firstsignal: cannot write reports: {exc}", style="red"))
             return EXIT_ERROR

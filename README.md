@@ -121,7 +121,24 @@ kubectl logs deploy/api | firstsignal file --path -
 
 # several sources as one timeline
 firstsignal bundle --unit nginx --container my-api --pod deploy/api -n prod
+
+# a customer support bundle: every log file inside a .zip, .tar or .tar.gz
+firstsignal archive ticket-4821.zip
 ```
+
+### Support bundles
+
+`archive` is for log bundles customers attach to support tickets. It reads every log file inside without extracting anything, and tells you where to look:
+
+- **Every finding cites `file:line`**, so you can quote the evidence back. Line numbers stay right even when only the end of a large file is read.
+- **Findings are ordered by time across files**, not by file order. Times without a zone are taken as UTC, and the report says so.
+- **`ticket-note.md`** is a short redacted summary to paste into the ticket as an internal note.
+- **Stricter masking by default**: IP addresses are masked as well as secrets and emails.
+- **Read-only commands** to show the lines around each top finding straight from the bundle (`unzip -p … | sed -n …`).
+- `.gz` files inside the bundle are read, and nested archives one level deep (`proxy.zip!/nginx/error.log`).
+- Skipped files are listed with a reason: binaries, core dumps, config files (add them with `--include '*.yaml'`).
+
+The bundle is treated as untrusted. Paths with `..`, absolute paths, links, encrypted members and members with a suspicious compression ratio are skipped. Reading stops if the bundle unpacks to more than 1 GB (`--max-total-mb`) or has more than 10,000 entries. The analysis budget (4 × `--max-bytes`, 20 MB by default) is shared across files, so one huge log cannot crowd out the rest; each file keeps its most recent part.
 
 ## Watch it live
 
@@ -244,6 +261,7 @@ Redaction uses known secret shapes, whole private-key blocks, and an entropy che
 
 ```text
 cli.py ── collectors.py   journalctl / docker logs / kubectl logs / file  (read-only, no shell)
+       ── archive.py      support bundles: zip / tar read in memory, with limits
        ── parsing.py      plain text, JSON lines, logfmt, kubectl prefixes → events
        ── analyzer.py     patterns → findings, severity, golden signals, order of appearance
        ── redact.py       masks secrets before anything is written or sent
@@ -286,7 +304,7 @@ See [ROADMAP.md](ROADMAP.md) for the phases and [docs/PRODUCT_PLAN.md](docs/PROD
 ## Limits
 
 - Detection is rule-based. It recognizes known failure signatures; it does not understand your application.
-- Order of appearance is a lead, not proof of cause.
+- Order of appearance is a lead, not proof of cause. Across machines, clocks may disagree.
 - It reads logs only. It does not look at metrics, traces or deploy history.
 
 ## License
