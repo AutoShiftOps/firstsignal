@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Redaction: a private key in the logs is now masked as a whole block. Before, only the `BEGIN` line was masked and the key itself was printed
+- Redaction: `Authorization` headers are masked at any length (`Bearer abc123` was not masked)
+- Redaction: "basic authentication" and similar prose are no longer masked by mistake
+
+### Added
+- Redaction: an entropy check masks long random-looking tokens (API keys, session secrets) that match no known shape. UUIDs, paths, short ids and resource names such as pod names are kept. Hex of 32 or more characters is masked, so long hashes and container ids are masked too
+- Tests that check every output for leaks: console, Markdown, JSON, HTML, AI payload and incident history
+
 ## [0.2.1] - 2026-11-12
 
 ### Fixed

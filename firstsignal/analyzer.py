@@ -69,6 +69,7 @@ def analyze(
     """Analyze log text against patterns. Pure function: no I/O, no side effects."""
     noise = DEFAULT_NOISE if noise is None else noise
     redactor = redactor or Redactor()
+    text = redactor.mask_blocks(text)  # multi-line secrets must go before the text is split
     findings: dict[str, Finding] = {}
     repeats: Counter = Counter()
     levels: Counter = Counter()
