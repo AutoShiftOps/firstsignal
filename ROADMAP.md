@@ -8,10 +8,10 @@ No dates are promised. Stages 4 and 5 only start if Stage 3 says go.
 
 | Stage | Milestone | Goal | Status |
 |---|---|---|---|
-| 1 | v0.2 Stabilize and ship | Released and verified, with incident memory in the CLI | In progress |
-| 2 | v0.3 Sharper triage | Live local triage and published accuracy | Planned |
+| 1 | v0.2 Stabilize and ship | Released and verified, with incident memory in the CLI | Done, except real-collector CI |
+| 2 | v0.3 Sharper triage | Live local triage, support bundles and published accuracy | Mostly done (0.3.0) |
 | 2 | v0.4 Share and integrate | Fits into CI, chat and existing log stores | Planned |
-| 3 | Validation gate | Evidence that teams use it and want shared memory | Planned |
+| 3 | Validation gate | Evidence that teams use it and want shared memory | Pilot starting |
 | 4 | v0.5 Team memory (alpha) | One shared incident history, fed by findings pushed from the CLI | Conditional on Stage 3 |
 | 5 | v1.0 Team portal | Recurrence alerts, trends, roles | Conditional on Stage 4 |
 
@@ -21,21 +21,32 @@ No dates are promised. Stages 4 and 5 only start if Stage 3 says go.
 
 Shipped: incident memory ("seen before" with fix notes), Kubernetes source, structured log parsing, severity and order of first appearance, redaction, optional AI hypothesis, pattern packs, `--fail-on`, the website, a richer terminal summary, and `--html` for a shareable dashboard report.
 
-Remaining: publish to PyPI, tag the release, turn on GitHub Pages, and test the collectors against real journalctl, Docker and a Kubernetes cluster.
+Also shipped: `pip install firstsignal` (0.2.0, 0.2.1) and the website.
 
-**Done when:** `pip install firstsignal` works, CI exercises real collectors, and the site is live.
+Remaining: test the collectors against real journalctl, Docker and a Kubernetes cluster in CI (#8).
+
+**Done when:** CI exercises real collectors.
 
 ## Phase 1: v0.3 Sharper triage
 
-- `firstsignal watch`: continuous local triage that reports only what changed (shipped)
-- Group multi-line stack traces into one event
-- Burst detection: when the error rate jumped, not only what appeared
-- Per-source timelines in `bundle`, to show which component failed first
-- `firstsignal diff` to compare a run against a known-good baseline
-- Kubernetes events and pod status as a source
-- A regression corpus of real log samples to keep false positives down
+Shipped in 0.3.0:
 
-**Done when:** on the sample corpus, the first-appearing finding matches the labeled root cause in most cases, with the result published.
+- `firstsignal watch`: continuous local triage that reports only what changed
+- `firstsignal archive`: every log file in a customer support bundle (.zip, .tar.gz), read without extracting, with `file:line` citations, time order across files and a redacted ticket note
+- Multi-line stack traces grouped into one event (Java, Python, Go, Node)
+- Timestamps in common formats (nginx, syslog, Apache, epoch), so findings order correctly across files
+- Stricter redaction: whole private-key blocks, `Authorization` headers, an entropy check for unlabeled secrets
+- Detection precision fixes, and incident history that survives growth, clock skew and concurrent runs
+- A labelled regression corpus with published accuracy (see the README); CI fails when results change
+
+Still to do:
+
+- Burst detection: when the error rate jumped, not only what appeared (#13)
+- Per-source timelines in `bundle` for live sources (#14; done for `archive`)
+- `firstsignal diff` to compare a run against a known-good baseline (#15)
+- Kubernetes events and pod status as a source (#16)
+
+**Done when:** on the corpus, the earliest observed finding matches the labelled one in most cases, with the result published. Met on the synthetic corpus; real-log accuracy comes from the pilot.
 
 ## Phase 2: v0.4 Share and integrate
 
@@ -50,9 +61,9 @@ Remaining: publish to PyPI, tag the release, turn on GitHub Pages, and test the 
 
 This phase is evidence, not code. It answers the two open questions in the product plan: do small teams want investigation tooling or only fewer alerts, and will they trust a tool with production logs.
 
-- Interviews with engineers on 5 to 50 person teams
+- Interviews with engineers on 5 to 50 person teams, and with support or escalation engineers who triage customer log bundles
 - Adoption signals from the open-source tool
-- A handful of teams trying it on real incidents and reporting back
+- A free, restricted pilot: 3 to 5 engineers using it on real incidents and reporting back ([docs/PILOT.md](docs/PILOT.md))
 - A written go or no-go decision
 
 **Go if** the criteria in the product plan are met. **Otherwise** firstsignal stays a maintained open-source CLI, which is a fine outcome.

@@ -84,6 +84,7 @@ pytest --cov
 - **Redact before anything leaves the process.** Reports and AI prompts only ever see redacted text.
 - **AI is optional.** Every feature must work with no key and no network.
 - **New patterns need two tests:** a line that should match and a similar line that should not.
+- **The regression corpus must not change by accident.** `tests/test_corpus.py` fails when results on `tests/corpus/` change. If the change is intended, run `python scripts/corpus.py --snapshot`, review the diff of each `case.json`, and say in the pull request what moved and why. Never edit a case's `truth` to match the tool; see [tests/corpus/README.md](tests/corpus/README.md).
 
 ## License
 

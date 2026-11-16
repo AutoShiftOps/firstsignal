@@ -17,17 +17,24 @@ Include the following information:
 ## Security Considerations
 
 ### What firstsignal does
-- Reads logs through `journalctl`, `docker logs`, `kubectl logs`, or a file you name
+- Reads logs through `journalctl`, `docker logs`, `kubectl logs`, a file you name, or a support bundle (`archive`)
 - Runs those tools with a fixed argument list and no shell; values that look like options are rejected
-- Masks secrets (passwords, tokens, keys, credentials in URLs, emails) in every report by default
-- Writes `report.md` and `report.json` to the directory you choose
+- Masks secrets in every output by default (terminal, Markdown, JSON, HTML, the ticket note, the AI payload): passwords, tokens and keys, credentials in URLs, `Authorization` headers at any length, whole private-key blocks, emails, and long random-looking tokens found by an entropy check. In `archive` mode IP addresses are masked too
+- Writes `report.md` and `report.json` (plus `report.html` with `--html`, and `ticket-note.md` for `archive` runs) to the directory you choose
+- Keeps incident history in one local file (`~/.firstsignal/history.jsonl`, mode 0600) holding pattern names, counts, targets, times and your notes, never log text
 - Sends nothing over the network unless you pass `--ai`
+
+### Support bundles (`archive`)
+A bundle is treated as untrusted input:
+- Nothing is extracted to disk; members are read in memory in bounded chunks
+- Absolute paths, `..`, control characters in names, links, encrypted members and members with a suspicious compression ratio are skipped and listed in the report
+- Reading stops at 1 GB unpacked (`--max-total-mb`) or 10,000 entries; nested archives are opened one level deep only
 
 ### What `--ai` sends
 - Only the redacted findings summary: counts, order of appearance, up to two redacted example lines per finding, and the top repeating lines
 - Never the raw log, and never anything when `--no-redact` is set
 - To the provider you configure with your own key, over HTTPS (plain HTTP is accepted for localhost only, for local models)
-- Redaction is pattern-based and cannot guarantee that every secret is caught. Review what your logs contain before enabling `--ai`
+- Redaction uses known secret shapes plus an entropy check, and still cannot guarantee that every secret is caught. Review what your logs contain before enabling `--ai` or sharing a report outside your team
 
 ### What firstsignal does not do
 - Change anything: no restarts, deletes, scaling or config edits. Suggested commands are read-only and are printed, never run
