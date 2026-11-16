@@ -175,7 +175,7 @@ def run_history(args) -> int:
             console.print(Text(f"No incidents remembered yet ({path})."))
             return EXIT_OK
         table = Table(title="Remembered incidents", title_justify="left")
-        for col in ("ID", "Last seen", "Target", "Severity", "First to appear", "Note"):
+        for col in ("ID", "Last seen", "Target", "Severity", "Earliest signature", "Note"):
             table.add_column(col)
         for inc in incidents:
             table.add_row(inc.id, inc.last_seen_at[:16].replace("T", " "), Text(inc.target),
@@ -299,7 +299,9 @@ def render(console: Console, analysis: Analysis, ai_result, paths) -> None:
             console.print(timeline)
             if len(analysis.order) > TIMELINE_ROWS:
                 console.print(f"... and {len(analysis.order) - TIMELINE_ROWS} more in the report", highlight=False)
-            console.print(Text(f"First to appear: {first.title}"))
+            if not st.get("archive"):
+                console.print(Text(f"Earliest observed matching signature: {first.title} "
+                                   "(where to start looking, not proof of cause)"))
         arc = st.get("archive")
         if arc:
             key, info = earliest_finding(analysis)

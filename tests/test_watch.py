@@ -147,7 +147,7 @@ def test_cli_watch_file_end_to_end(tmp_path, monkeypatch, capsys):
                       "--fail-on", "critical"], on_sleep)
     out = capsys.readouterr().out
     assert code == cli.EXIT_THRESHOLD
-    assert "Watching" in out and "Slow operations" in out and "Out of memory" in out
+    assert "Watching" in out and "Slowness reported" in out and "Out of memory" in out
     assert "Connection refused" not in out  # only lines written after watch started
     assert "Stopped after 5 checks. Peak severity: critical." in out and "Remembered as" in out
     report = json.loads((tmp_path / "out" / "report.json").read_text())

@@ -58,10 +58,12 @@ CORE = [
        r"|i/o timeout|(?:read|write|connect|connection|request|gateway|upstream) timeout)\b",
        "latency", "high", "Timeouts",
        "Timeouts. Check the health and latency of whatever this service calls, then its own saturation."),
+    # The log says something was slow. That is a report, not a latency measurement.
     _p("slow",
-       r"\b(slow (?:query|request|response|log)|took longer than|response time (?:>|exceeded))",
-       "latency", "medium", "Slow operations",
-       "Slow operations reported. Correlate with load and with recent deploys or query changes."),
+       r"\b(slow (?:query|request|response)(?!\s+log\b)|took longer than|response time (?:>|exceeded))",
+       "latency", "medium", "Slowness reported",
+       "The log reports slowness; it is not a latency measurement. Read the duration in the line, "
+       "then correlate with load and recent deploys or query changes."),
     _p("conn_refused",
        r"\b(connection refused|ECONNREFUSED)\b",
        "errors", "high", "Connection refused",
@@ -82,8 +84,9 @@ CORE = [
        "TLS failures. Check certificate expiry and chain on both ends, and clock skew."),
     _p("permission",
        r"\b(permission denied|EACCES|access denied|forbidden)\b",
-       "errors", "medium", "Permission denied",
-       "Access was denied. Check file ownership, roles or policies that changed recently."),
+       "errors", "medium", "Access denied",
+       "Access was denied. The line says to what: a file, a role or policy, a database user, or an "
+       "HTTP 403. Check what changed recently for that one."),
     _p("auth_failure",
        r"\b(authentication failed|unauthorized|invalid credentials|login failed|invalid token|token (?:has )?expired)\b",
        "errors", "medium", "Authentication failures",
@@ -92,8 +95,9 @@ CORE = [
        _STATUS_CTX + r"5\d\d\b|\b(internal server error|bad gateway|service unavailable|gateway timeout)\b",
        "errors", "high", "HTTP 5xx responses",
        "Server errors. Correlate the start time with recent deploys or config changes."),
+    # "non-fatal" is not a crash, and PostgreSQL's "FATAL:  " (two spaces) ends one session, not the server
     _p("panic_fatal",
-       r"(\bpanic\b|\bfatal\b|\bsegfault\b|SIGSEGV|core dumped|Traceback \(most recent call last\)"
+       r"(\bpanic\b|(?<!non-)\bfatal\b(?!:\s{2})|\bsegfault\b|SIGSEGV|core dumped|Traceback \(most recent call last\)"
        r"|unhandled exception|uncaught exception)",
        "errors", "critical", "Crashes and fatal errors",
        "The process is crashing. Read the first stack trace, not the last; later ones are often knock-on."),
@@ -129,6 +133,12 @@ POSTGRES = [
     _p("pg_statement_timeout", r"canceling statement due to statement timeout", "latency", "high",
        "PostgreSQL: statement timeout",
        "Statements are hitting the timeout. Find the slow queries and check for lock waits.", "postgres"),
+    _p("pg_connection_rejected",
+       r"(password authentication failed for user|no pg_hba\.conf entry for host"
+       r"|(?:role|database) \"[^\"]+\" does not exist)",
+       "errors", "high", "PostgreSQL: connection rejected",
+       "PostgreSQL refused a session: bad password, missing pg_hba.conf rule, or unknown role or database. "
+       "The server is up; check credentials and config that changed recently.", "postgres"),
     _p("pg_unavailable", r"the database system is (?:in recovery mode|starting up|shutting down)",
        "errors", "critical", "PostgreSQL: not accepting connections",
        "The database is restarting or recovering. Check why it went down.", "postgres"),
@@ -149,7 +159,11 @@ KUBERNETES = [
     _p("k8s_probe_failed", r"(liveness|readiness|startup) probe failed", "errors", "high",
        "Kubernetes: probe failing",
        "Probes are failing. Check whether the app is slow to respond or the probe is misconfigured.", "kubernetes"),
-    _p("k8s_evicted", r"(\bevicted\b|the node was low on resource)", "saturation", "high",
+    # Only Kubernetes phrasing: "evicted" alone also means cache keys or sessions.
+    _p("k8s_evicted",
+       r"(\bpods?\b[^\n]{0,120}\bevicted\b|\bevicted\b[^\n]{0,60}\bpods?\b|\bWarning\s+Evicted\b"
+       r"|reason[\"']?\s*[:=]\s*[\"']?Evicted\b|eviction manager|the node was low on resource)",
+       "saturation", "high",
        "Kubernetes: pod evicted",
        "Pods are being evicted. Check node pressure (memory, disk) and pod requests.", "kubernetes"),
     _p("k8s_scheduling", r"(FailedScheduling|insufficient (?:cpu|memory))", "saturation", "high",
@@ -255,13 +269,17 @@ DEFAULT_NOISE = [
 
 
 def resolve_packs(names) -> list[Pattern]:
-    """Return the patterns for the named packs. 'all' selects every pack."""
+    """Return the patterns for the named packs. 'all' selects every pack. Repeats are ignored."""
     names = list(names) or list(DEFAULT_PACKS)
     if "all" in names:
         names = list(PACKS)
     out: list[Pattern] = []
-    for name in names:
+    seen: set[str] = set()
+    for name in dict.fromkeys(names):
         if name not in PACKS:
             raise ValueError(f"unknown pattern pack '{name}' (available: {', '.join(PACKS)}, all)")
-        out.extend(PACKS[name])
+        for pat in PACKS[name]:
+            if pat.key not in seen:
+                seen.add(pat.key)
+                out.append(pat)
     return out
