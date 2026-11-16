@@ -238,7 +238,7 @@ firstsignal file --path app.log --ai --ai-provider ollama --ai-model llama3.1
 
 Environment: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `FIRSTSIGNAL_AI_KEY`; `FIRSTSIGNAL_AI_PROVIDER`, `FIRSTSIGNAL_AI_MODEL`, `FIRSTSIGNAL_AI_BASE_URL`.
 
-Redaction is pattern-based and cannot promise to catch every secret. See [SECURITY.md](SECURITY.md).
+Redaction uses known secret shapes, whole private-key blocks, and an entropy check for long random-looking tokens. It cannot promise to catch every secret. Long hex values (32+ characters), such as hashes and container ids, are masked as well. See [SECURITY.md](SECURITY.md).
 
 ## How it works
 
