@@ -130,6 +130,8 @@ def build_report_md(meta: dict, analysis: Analysis, commands, ai: AIResult | Non
         f"- Lines: {st['lines_analyzed']} analyzed, {st['lines_matched']} matched a pattern, "
         f"{st['lines_noise_filtered']} filtered as noise",
     ]
+    if st.get("counts_scope"):
+        out.append(f"- Counts cover: {st['counts_scope']}")
     if st["first_timestamp"]:
         out.append(f"- Log time range: {st['first_timestamp']} to {st['last_timestamp']}")
 

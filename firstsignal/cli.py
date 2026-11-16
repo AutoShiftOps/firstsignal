@@ -170,7 +170,11 @@ def run_history(args) -> int:
     path = Path(args.history) if args.history else memory.default_path()
     console, err = Console(), Console(stderr=True)
     if args.history_cmd == "list":
-        incidents = memory.load(path)[::-1][: max(0, args.limit)]
+        stored = memory.read(path)
+        if stored.unreadable:
+            err.print(Text(f"firstsignal: {len(stored.unreadable)} line(s) in {path} could not be read "
+                           "(bad JSON or timestamp); they are kept in the file but ignored", style="yellow"))
+        incidents = stored.incidents[::-1][: max(0, args.limit)]
         if not incidents:
             console.print(Text(f"No incidents remembered yet ({path})."))
             return EXIT_OK
@@ -269,6 +273,8 @@ def render(console: Console, analysis: Analysis, ai_result, paths) -> None:
     st = analysis.stats
     console.print(f"{st['lines_analyzed']} lines analyzed, {st['lines_matched']} matched, "
                   f"{st['lines_noise_filtered']} filtered as noise", highlight=False)
+    if st.get("counts_scope", "the whole input") != "the whole input":
+        console.print(Text(f"Counts cover {st['counts_scope']}."))
     if analysis.findings:
         located = any(f.first_location for f in analysis.findings.values())
         table = Table(title="Findings", title_justify="left")
@@ -408,6 +414,7 @@ def run_watch(args, sleep=time.sleep, clock=time.monotonic) -> int:
     if peak is None:
         return EXIT_ERROR
     peak.stats["truncated"] = False
+    peak.stats["counts_scope"] = f"busiest {window}-minute window of the watch, not the whole session"
     meta = build_meta(f"watch {source}", state["target"], f"last {window} min, peak of {watcher.ticks} checks")
     ai_result = None
     if args.ai and not args.no_redact and peak.findings:
@@ -458,6 +465,9 @@ def run(argv=None) -> int:
     bundle = ctx.get("archive", {}).get("result")
     if bundle is None:
         text, truncated = collectors.tail_bytes(text, args.max_bytes)
+        if args.source == "file" and args.path != "-" and not args.path.endswith(".gz"):
+            # the file collector already read only the tail, so the text alone cannot tell
+            truncated = truncated or (args.max_bytes > 0 and os.path.getsize(args.path) > args.max_bytes)
     else:
         truncated = any(f.truncated for f in bundle.files)  # limits were applied per file while reading
     # customer bundles mask IP addresses too
@@ -466,6 +476,8 @@ def run(argv=None) -> int:
     analysis = analyze(text, patterns, noise=cfg.noise, redactor=redactor, track_locations=bundle is not None,
                        line_offsets=bundle.line_offsets if bundle else None)
     analysis.stats["truncated"] = truncated
+    analysis.stats["counts_scope"] = ("the most recent part of the input (it was larger than --max-bytes)"
+                                      if truncated else "the whole input")
     if bundle is not None:
         analysis.order = time_order(analysis)[0]  # across files, text order is not time order
         analysis.stats["archive"] = {

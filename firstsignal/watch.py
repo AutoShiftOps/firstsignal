@@ -125,9 +125,9 @@ class Watcher:
         changed = False
         for key in analysis.order:
             count = analysis.findings[key].count
-            if key not in self.seen or count > self.seen[key]:
-                changed = changed or key not in self.seen
-                self.seen[key] = max(count, self.seen.get(key, 0))
+            if count > self.seen.get(key, 0):   # a new pattern, or more of one already seen
+                changed = True
+                self.seen[key] = count
         if SEVERITY_RANK[analysis.severity] > SEVERITY_RANK[self.session_severity]:
             self.session_severity, changed = analysis.severity, True
         if self.history_path is None or not changed:
