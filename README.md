@@ -131,7 +131,7 @@ firstsignal archive ticket-4821.zip
 `archive` is for log bundles customers attach to support tickets. It reads every log file inside without extracting anything, and tells you where to look:
 
 - **Every finding cites `file:line`**, so you can quote the evidence back. Line numbers stay right even when only the end of a large file is read.
-- **Findings are ordered by time across files**, not by file order. Times without a zone are taken as UTC, and the report says so.
+- **Findings are ordered by time across files**, not by file order. ISO, nginx, syslog, Apache access log and JSON epoch times are understood. Times without a zone are taken as UTC, and the report says so; syslog times carry no year, so the current year is assumed.
 - **`ticket-note.md`** is a short redacted summary to paste into the ticket as an internal note.
 - **Stricter masking by default**: IP addresses are masked as well as secrets and emails.
 - **Read-only commands** to show the lines around each top finding straight from the bundle (`unzip -p … | sed -n …`).

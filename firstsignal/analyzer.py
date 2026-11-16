@@ -7,7 +7,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from .parsing import LEVEL_RANK, TS_RE, parse_line
+from .parsing import LEVEL_RANK, TS_RE, parse_line, to_datetime
 from .patterns import DEFAULT_NOISE, SEVERITY_RANK, SIGNALS, Pattern
 from .redact import Redactor
 
@@ -64,15 +64,8 @@ def normalize_line(line: str) -> str:
 
 
 def parse_ts(ts: str | None) -> datetime | None:
-    """Parse an ISO-like log timestamp; None if it cannot be compared."""
-    if not ts:
-        return None
-    try:
-        clean = ts.strip().replace(",", ".").replace(" ", "T", 1)
-        clean = re.sub(r"(?:Z|\s*UTC)$", "+00:00", clean)
-        return datetime.fromisoformat(clean)
-    except ValueError:
-        return None
+    """Parse a log timestamp (ISO, nginx, syslog, Apache or epoch); None if it cannot be compared."""
+    return to_datetime(ts)
 
 
 def analyze(
