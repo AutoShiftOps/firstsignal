@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-16
+
+Support bundles, stack traces, stricter redaction and published accuracy. Reports now say "earliest observed matching signature" and never claim a root cause outside the labelled AI hypothesis.
+
+### Removed
+- The former name is gone: the `incopilot` command, `INCOPILOT_*` environment variables, `incopilot.toml` and the `~/.incopilot` history fallback. Use `firstsignal`, `FIRSTSIGNAL_*`, `firstsignal.toml` and `~/.firstsignal`
+
+### Documentation
+- `docs/PILOT.md`: a free 30-day pilot: rules, a five-minute start, and a feedback form
+- README, ROADMAP, product plan, SECURITY and CONTRIBUTING brought up to date; the website shows the support-bundle source
+
 ### Changed
 - Wording: reports say "earliest observed matching signature" and that order in the logs is a lead, not proof of cause. Nothing outside the labelled AI hypothesis claims a root cause
 - `slow` is now titled "Slowness reported": the log says something was slow, which is not a latency measurement

@@ -4,9 +4,7 @@
 
 # firstsignal
 
-> Formerly **incopilot**. The `incopilot` command, `INCOPILOT_*` variables, `incopilot.toml` and `~/.incopilot` history still work for one release.
-
-Read-only incident triage for logs. One command collects logs from **systemd, Docker, Kubernetes or a file**, maps what it finds to the **Four Golden Signals**, and writes a report with the order things went wrong and safe checks to run next.
+Read-only incident triage for logs. One command collects logs from **systemd, Docker, Kubernetes, a file, or a customer support bundle**, maps what it finds to the **Four Golden Signals**, and writes a report with the order things went wrong and safe checks to run next.
 
 [![CI](https://github.com/AutoShiftOps/firstsignal/actions/workflows/ci.yml/badge.svg)](https://github.com/AutoShiftOps/firstsignal/actions/workflows/ci.yml)
 ![python](https://img.shields.io/badge/python-3.10%E2%80%933.13-3776AB)
@@ -202,6 +200,7 @@ Options go after the source, for example `firstsignal file --path app.log --json
 | `--no-history`, `--history FILE` | Skip incident memory; use a different history file |
 | `--no-redact`, `--redact-ips` | Turn secret masking off; also mask IPv4 addresses |
 | `--ai`, `--ai-provider`, `--ai-model` | Optional AI hypothesis, see below |
+| `--include GLOB`, `--max-files N`, `--max-total-mb N` | `archive` only: also analyze files matching a pattern (repeatable); most log files to read (default 200); stop if the bundle unpacks to more than this (default 1024) |
 
 Exit codes: `0` success, `1` could not collect or write, `2` usage error, `3` `--fail-on` threshold met.
 

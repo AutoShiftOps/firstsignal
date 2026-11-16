@@ -1,8 +1,8 @@
 # Project plan
 
-Status: working draft, revised 2026-11-11.
+Status: working draft, revised 2026-11-16.
 
-firstsignal is a free, MIT-licensed open-source project maintained in spare time. Nothing is for sale: there are no paid plans, no pilots and no sponsorship. A team edition is described below as a possible later stage. Whether it would ever be offered commercially is undecided, and would only be considered once the requirements in section 7 are met.
+firstsignal is a free, MIT-licensed open-source project maintained in spare time. Nothing is for sale: there are no paid plans, no paid pilots and no sponsorship. A free pilot asks a few engineers to try it and report back ([PILOT.md](PILOT.md)). A team edition is described below as a possible later stage. Whether it would ever be offered commercially is undecided, and would only be considered once the requirements in section 7 are met.
 
 ## 1. Vision
 
@@ -24,6 +24,8 @@ Three principles, in priority order:
 | **Team** | 5 to 50 engineers with no dedicated SRE function |
 | **Decision** | The same person can decide to adopt it. No procurement process |
 | **Moment** | Something is broken, several services are logging errors, and nobody knows which one started it or whether this happened before |
+
+A second group is being tested as an easier starting point: **support and escalation engineers at B2B software companies** who triage log bundles customers attach to tickets. They have the logs but no access to the customer's systems, so trust is easier to earn: nothing touches production. `firstsignal archive` is built for them. Whether they feel the pain enough to adopt it is an open question for the validation gate.
 
 ## 3. Market gaps
 
@@ -56,7 +58,7 @@ What weakens the bet: funded vendors are moving down-market, HolmesGPT is free, 
 | Stage | What ships | Exit criteria |
 |---|---|---|
 | 1. Memory in the CLI | Fingerprints, local history, "seen before" with fix notes. Free and open source | Used in real incidents by people other than the maintainers |
-| 2. Live and accurate | `firstsignal watch` for continuous local triage, stack-trace grouping, burst detection, a labeled accuracy corpus, PyPI release | Published accuracy; one-command install |
+| 2. Live and accurate | `firstsignal watch` for continuous local triage, support bundles, stack-trace grouping, burst detection, a labeled accuracy corpus, PyPI release | Published accuracy; one-command install. Met in 0.3.0 except burst detection; accuracy is on a synthetic corpus |
 | 3. Validation gate | Interviews, adoption data, teams trying it on real incidents, a written decision | See section 6 |
 | 4. Team memory | A small service that receives redacted findings pushed by the CLI (`--push <url>`) and gives the team one shared history: live findings, recurrence, what fixed it, by service | Three teams running it for 30 days |
 | 5. Team portal | Alerts on recurrence and severity, trends, roles, retention | Decided at the end of Stage 4 |
@@ -67,7 +69,7 @@ Stages 1 and 2 are worth doing whatever Stage 3 concludes.
 
 **Go** to Stage 4 only if all of these hold:
 
-- At least 10 interviews with people who match section 2, and at least half describe finding the cause of an incident (not alert volume) as a top-three pain
+- At least 10 interviews with people who match section 2 (either group), and at least half describe finding the cause of an incident (not alert volume) as a top-three pain
 - At least half of those interviewed can name an incident that repeated in the last six months
 - At least 3 teams have used the CLI in a real incident and can say what it changed
 - At least 2 teams say they would run a shared team history themselves if it existed

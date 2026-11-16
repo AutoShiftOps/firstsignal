@@ -7,7 +7,6 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import _compat
 from .patterns import SEVERITY_RANK, SIGNALS, Pattern
 
 if sys.version_info >= (3, 11):
@@ -45,7 +44,7 @@ def _compile(rx: str, where: str) -> re.Pattern:
 def load(path: str | None = None) -> Settings:
     """Load settings from `path`, or ./firstsignal.toml if it exists, else defaults."""
     explicit = path is not None
-    file = Path(path) if path else _compat.prefer_existing(Path(DEFAULT_FILE), Path(f"{_compat.OLD_NAME}.toml"))
+    file = Path(path) if path else Path(DEFAULT_FILE)
     if not file.is_file():
         if explicit:
             raise SettingsError(f"config file not found: {file}")
