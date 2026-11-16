@@ -102,7 +102,7 @@ def test_naive_timestamps_are_read_as_utc_and_bad_ones_are_kept_aside(core, tmp_
     # a new run compares against the naive record without crashing, and keeps the bad lines
     _, matches = run(core, path, POOL)
     assert [m.incident.id for m in matches] == ["naive001"] and matches[0].days_ago == 27
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     assert '"yesterday"' in text and "{not json" in text
 
 
@@ -121,7 +121,7 @@ def test_note_and_forget_keep_unreadable_lines(core, tmp_path):
         fh.write("{not json\n")
     memory.set_note(path, rec.id, "raised pool")
     memory.forget(path, "nope")
-    assert "{not json" in path.read_text()
+    assert "{not json" in path.read_text(encoding="utf-8")
 
 
 # ---- concurrent writes -----------------------------------------------------------------------
@@ -166,6 +166,6 @@ def test_reports_say_what_counts_cover(example_log, tmp_path, monkeypatch, capsy
     cli.run(["file", "--path", str(example_log), "--no-history", "--no-write", "--json"])
     assert json.loads(capsys.readouterr().out)["stats"]["counts_scope"] == "the whole input"
     cli.run(["file", "--path", str(example_log), "--no-history", "--max-bytes", "600"])
-    assert json.loads((tmp_path / "out" / "report.json").read_text())["stats"]["truncated"] is True
+    assert json.loads((tmp_path / "out" / "report.json").read_text(encoding="utf-8"))["stats"]["truncated"] is True
     assert "Counts cover the most recent part" in " ".join(capsys.readouterr().out.split())
-    assert "- Counts cover: the most recent part" in (tmp_path / "out" / "report.md").read_text()
+    assert "- Counts cover: the most recent part" in (tmp_path / "out" / "report.md").read_text(encoding="utf-8")

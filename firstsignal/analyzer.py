@@ -7,6 +7,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+from .grouping import Event, Grouper, is_frame
 from .parsing import LEVEL_RANK, TS_RE, parse_line, to_datetime
 from .patterns import DEFAULT_NOISE, SEVERITY_RANK, SIGNALS, Pattern
 from .redact import Redactor
@@ -96,60 +97,87 @@ def analyze(
     source, line_no = None, 0
     earliest: dict[str, datetime] = {}
 
-    for raw in text.splitlines():
-        mark = _SOURCE_MARK.match(raw.strip())
-        if mark:
-            sources.append(mark.group(1))
-            source = mark.group(1)
-            line_no = line_offsets.get(source, 0)
-            continue
-        line_no += 1
-        if not raw.strip():
-            continue
-        total += 1
-        ev = parse_line(raw, total)
+    events = 0
+    multiline = 0
+
+    def handle(ev_group: Event) -> None:
+        nonlocal total, filtered, matched_lines, structured, first_ts, last_ts, events, multiline
+        head_no, head_raw = ev_group.head
+        n_lines = sum(1 for _, r in ev_group.lines if r.strip())
+        total += n_lines
+        events += 1
+        multiline += ev_group.multiline
+        ev = parse_line(head_raw, events)
         # health checks are noise unless they are themselves reporting a failure
         if LEVEL_RANK[ev.level] < LEVEL_RANK["error"] and any(rx.search(ev.raw) for rx in noise):
-            filtered += 1
-            continue
+            filtered += n_lines
+            return
         levels[ev.level] += 1
         structured += ev.structured
         if ev.timestamp:
             first_ts = first_ts or ev.timestamp
             last_ts = ev.timestamp
-        if ev.level != "debug":
-            hit = False
-            for pat in patterns:
-                if not pat.regex.search(ev.text):
-                    continue
-                hit = True
-                f = findings.get(pat.key)
-                if f is None:
-                    f = findings[pat.key] = Finding(
-                        pat.key, pat.title, pat.signal, pat.severity, pat.advice,
-                        first_index=ev.index, first_seen=ev.timestamp,
-                    )
-                f.count += 1
-                f.last_seen = ev.timestamp or f.last_seen
-                where = f"{source}:{line_no}" if source else f"line {line_no}"
-                if track_locations and f.first_location is None:
-                    f.first_location = where
-                if len(f.examples) < max_examples:
-                    f.examples.append(redactor(ev.raw)[:300])
-                    if track_locations:
-                        f.locations.append(where)
-                when = parse_ts(ev.timestamp)
-                if when is not None:
-                    prev = earliest.get(pat.key)
-                    try:
-                        if prev is None or when < prev:
-                            earliest[pat.key] = when
-                            f.earliest = ev.timestamp
-                    except TypeError:  # naive and aware timestamps cannot be compared
-                        pass
-            matched_lines += hit
-            if hit or LEVEL_RANK[ev.level] >= LEVEL_RANK["unknown"]:
-                repeats[normalize_line(redactor(ev.text))[:240]] += 1
+        if ev.level == "debug":
+            return
+        # what each pattern is matched against: the head's parsed text, then every continuation line
+        texts = [(head_no, head_raw, ev.text)] + [(no, raw, raw.strip()) for no, raw in ev_group.lines[1:]]
+        exc = ev_group.exception_line() if ev_group.multiline else None
+        hit = False
+        for pat in patterns:
+            match = next(((no, raw) for no, raw, t in texts if t and pat.regex.search(t)), None)
+            if match is None:
+                continue
+            hit = True
+            f = findings.get(pat.key)
+            if f is None:
+                f = findings[pat.key] = Finding(
+                    pat.key, pat.title, pat.signal, pat.severity, pat.advice,
+                    first_index=ev.index, first_seen=ev.timestamp,
+                )
+            f.count += 1
+            f.last_seen = ev.timestamp or f.last_seen
+            shown = match
+            if ev_group.multiline and exc and (match[0] == head_no or is_frame(match[1])):
+                shown = exc            # the exception's type and message, not a frame
+            where_no = shown[0]
+            where = f"{source}:{where_no}" if source else f"line {where_no}"
+            if track_locations and f.first_location is None:
+                f.first_location = where
+            if len(f.examples) < max_examples:
+                example = head_raw.strip()
+                if shown[0] != head_no:
+                    example = f"{example} | {shown[1].strip()}"
+                f.examples.append(redactor(example)[:300])
+                if track_locations:
+                    f.locations.append(where)
+            when = parse_ts(ev.timestamp)
+            if when is not None:
+                prev = earliest.get(pat.key)
+                try:
+                    if prev is None or when < prev:
+                        earliest[pat.key] = when
+                        f.earliest = ev.timestamp
+                except TypeError:  # naive and aware timestamps cannot be compared
+                    pass
+        matched_lines += n_lines if hit else 0
+        if hit or LEVEL_RANK[ev.level] >= LEVEL_RANK["unknown"]:
+            repeats[normalize_line(redactor(ev.text))[:240]] += 1
+
+    grouper = Grouper()
+    for raw in text.splitlines():
+        mark = _SOURCE_MARK.match(raw.strip())
+        if mark:
+            for done in grouper.flush():
+                handle(done)
+            sources.append(mark.group(1))
+            source = mark.group(1)
+            line_no = line_offsets.get(source, 0)
+            continue
+        line_no += 1
+        for done in grouper.feed(line_no, raw):
+            handle(done)
+    for done in grouper.flush():
+        handle(done)
 
     order = sorted(findings, key=lambda k: findings[k].first_index)
     ranked = sorted(findings.values(), key=lambda f: (-SEVERITY_RANK[f.severity], -f.count))
@@ -165,6 +193,8 @@ def analyze(
         "lines_analyzed": total - filtered,
         "lines_matched": matched_lines,
         "lines_structured": structured,
+        "events": events,
+        "multiline_events": multiline,
         "levels": dict(levels),
         "first_timestamp": first_ts,
         "last_timestamp": last_ts,
