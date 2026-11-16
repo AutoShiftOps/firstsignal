@@ -26,7 +26,7 @@
       "nginx_upstream_timeout": 2,
       "timeout": 2
     },
-    "first": "http_5xx",
+    "first": "timeout",
     "severity": "high"
   }
 }

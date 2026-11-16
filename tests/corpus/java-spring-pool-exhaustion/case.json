@@ -12,18 +12,19 @@
       "jvm_oom",
       "timeout"
     ],
-    "first": "timeout"
+    "first": "conn_limit"
   },
   "must_not_leak": [],
-  "notes": "Hikari 'Connection is not available' is a pool limit.",
+  "notes": "Hikari 'Connection is not available' is a pool limit. First is the pool limit: the Hikari line reports the pool exhausted, and the timeout is how that showed up (relabelled in #73, when conn_limit joined the truth set).",
   "snapshot": {
     "findings": {
+      "conn_limit": 2,
       "conn_refused": 1,
       "http_5xx": 1,
       "jvm_oom": 1,
       "timeout": 2
     },
-    "first": "timeout",
+    "first": "conn_limit",
     "severity": "critical"
   }
 }

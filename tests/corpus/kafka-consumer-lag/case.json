@@ -19,7 +19,8 @@
     "findings": {
       "kafka_consumer_poll": 2,
       "kafka_not_leader": 1,
-      "kafka_record_too_large": 1
+      "kafka_record_too_large": 1,
+      "timeout": 1
     },
     "first": "kafka_not_leader",
     "severity": "high"

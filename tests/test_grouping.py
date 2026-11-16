@@ -72,12 +72,25 @@ def test_java_example_is_the_deepest_cause():
     assert f.examples[0].isascii()   # plain separator: safe on legacy Windows consoles
 
 
-def test_python_chained_traceback_is_one_crash_with_its_exceptions():
+def test_python_logged_traceback_is_one_event_but_not_a_crash():
     a = analyze(PYTHON + NEXT, ALL, track_locations=True)
     assert a.stats["events"] == 2 and a.stats["multiline_events"] == 1
-    crash = a.findings["panic_fatal"]
-    assert crash.count == 1 and crash.examples[0].endswith("TimeoutError: timed out waiting for database")
+    assert "panic_fatal" not in a.findings          # caught and logged by the application
     assert a.findings["conn_refused"].first_location == "line 5"
+    assert a.findings["timeout"].examples[0].endswith("TimeoutError: timed out waiting for database")
+    # the chain is ordered oldest first: the refused connection came before the timeout
+    assert a.order.index("conn_refused") < a.order.index("timeout")
+
+
+def test_bare_python_traceback_is_a_crash():
+    bare = PYTHON.split("\n", 1)[1]                 # no log line above it: the interpreter printed it
+    crash = analyze(bare, ALL).findings["panic_fatal"]
+    assert crash.count == 1 and crash.examples[0].startswith("Traceback (most recent call last):")
+
+
+def test_java_deepest_cause_comes_first():
+    a = analyze(JAVA, ALL)
+    assert a.order[0] == "conn_refused"
 
 
 def test_go_panic_and_node_error():

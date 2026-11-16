@@ -18,10 +18,9 @@
     "findings": {
       "conn_refused": 1,
       "http_5xx": 4,
-      "panic_fatal": 1,
       "timeout": 1
     },
-    "first": "timeout",
-    "severity": "critical"
+    "first": "conn_refused",
+    "severity": "high"
   }
 }
