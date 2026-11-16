@@ -1,0 +1,27 @@
+{
+  "description": "Kafka: a broker restart moves leaders, a slow consumer is kicked from its group, and a producer sends a record that is too large.",
+  "mode": "file",
+  "packs": [
+    "all"
+  ],
+  "truth": {
+    "findings": [
+      "kafka_consumer_poll",
+      "kafka_not_leader",
+      "kafka_record_too_large",
+      "timeout"
+    ],
+    "first": "kafka_not_leader"
+  },
+  "must_not_leak": [],
+  "notes": "'poll timeout has expired' is a timeout.",
+  "snapshot": {
+    "findings": {
+      "kafka_consumer_poll": 2,
+      "kafka_not_leader": 1,
+      "kafka_record_too_large": 1
+    },
+    "first": "kafka_not_leader",
+    "severity": "high"
+  }
+}

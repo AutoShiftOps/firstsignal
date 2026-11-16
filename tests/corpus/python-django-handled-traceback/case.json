@@ -1,0 +1,27 @@
+{
+  "description": "Django under gunicorn: Redis connection refused while caching, a logged (handled) chained traceback, then 503 responses. The process keeps serving; nothing crashed.",
+  "mode": "file",
+  "packs": [
+    "all"
+  ],
+  "truth": {
+    "findings": [
+      "conn_refused",
+      "http_5xx",
+      "timeout"
+    ],
+    "first": "conn_refused"
+  },
+  "must_not_leak": [],
+  "notes": "A traceback logged by logger.exception is a handled error, not a crash.",
+  "snapshot": {
+    "findings": {
+      "conn_refused": 1,
+      "http_5xx": 4,
+      "panic_fatal": 1,
+      "timeout": 1
+    },
+    "first": "timeout",
+    "severity": "critical"
+  }
+}

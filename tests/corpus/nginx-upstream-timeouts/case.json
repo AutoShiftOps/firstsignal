@@ -1,0 +1,32 @@
+{
+  "description": "nginx in front of an app: upstream timeouts, then connect() refused when the app dies, 502/504 in the access log, and clients giving up (499).",
+  "mode": "archive",
+  "packs": [
+    "all"
+  ],
+  "truth": {
+    "findings": [
+      "conn_refused",
+      "http_5xx",
+      "nginx_499",
+      "nginx_upstream_connect",
+      "nginx_upstream_timeout",
+      "timeout"
+    ],
+    "first": "timeout"
+  },
+  "must_not_leak": [],
+  "notes": "Access-log 5xx lines carry the status after the request line, not after 'HTTP '.",
+  "snapshot": {
+    "findings": {
+      "conn_refused": 1,
+      "http_5xx": 2,
+      "nginx_499": 1,
+      "nginx_upstream_connect": 1,
+      "nginx_upstream_timeout": 2,
+      "timeout": 2
+    },
+    "first": "http_5xx",
+    "severity": "high"
+  }
+}

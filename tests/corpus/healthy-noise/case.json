@@ -1,0 +1,17 @@
+{
+  "description": "A healthy service with chatty logs: health checks, settings lines, prose that mentions failure words. No finding should appear.",
+  "mode": "file",
+  "packs": [
+    "all"
+  ],
+  "truth": {
+    "findings": [],
+    "first": null
+  },
+  "must_not_leak": [],
+  "snapshot": {
+    "findings": {},
+    "first": null,
+    "severity": "none"
+  }
+}

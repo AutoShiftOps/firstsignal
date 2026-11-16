@@ -1,0 +1,29 @@
+{
+  "description": "Spring Boot service: Hikari pool exhausted, then connection refused to Postgres in a Caused-by chain, 502s from the gateway, finally a heap OutOfMemoryError.",
+  "mode": "file",
+  "packs": [
+    "all"
+  ],
+  "truth": {
+    "findings": [
+      "conn_limit",
+      "conn_refused",
+      "http_5xx",
+      "jvm_oom",
+      "timeout"
+    ],
+    "first": "timeout"
+  },
+  "must_not_leak": [],
+  "notes": "Hikari 'Connection is not available' is a pool limit.",
+  "snapshot": {
+    "findings": {
+      "conn_refused": 1,
+      "http_5xx": 1,
+      "jvm_oom": 1,
+      "timeout": 2
+    },
+    "first": "timeout",
+    "severity": "critical"
+  }
+}
