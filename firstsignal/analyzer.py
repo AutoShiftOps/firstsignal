@@ -7,11 +7,13 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from .grouping import Event, Grouper, is_frame
+from .grouping import MAX_EVENT_LINES, Event, Grouper, is_frame, is_traceback_header
 from .parsing import LEVEL_RANK, TS_RE, parse_line, to_datetime
 from .patterns import DEFAULT_NOISE, SEVERITY_RANK, SIGNALS, Pattern
 from .redact import Redactor
 
+OUTCOMES = frozenset({"http_5xx", "nginx_499", "rate_limited"})   # client-facing results, not causes
+EVENT_SPAN = MAX_EVENT_LINES + 1   # orders findings by event, then by cause inside the event
 _SOURCE_MARK = re.compile(r"^=== SOURCE: (.+) ===$")
 _NORMALIZERS = [
     (TS_RE, "<TS>"),
@@ -119,8 +121,12 @@ def analyze(
             last_ts = ev.timestamp
         if ev.level == "debug":
             return
-        # what each pattern is matched against: the head's parsed text, then every continuation line
-        texts = [(head_no, head_raw, ev.text)] + [(no, raw, raw.strip()) for no, raw in ev_group.lines[1:]]
+        # what each pattern is matched against: the head's parsed text, then every continuation line.
+        # A traceback header under a log line means the exception was caught and logged, not that the
+        # process crashed, so it is not matched; a bare traceback (the head itself) still is.
+        texts = [(head_no, head_raw, ev.text)] + [
+            (no, raw, raw.strip()) for no, raw in ev_group.lines[1:] if not is_traceback_header(raw)]
+        rank = ev_group.causal_rank() if ev_group.multiline else {head_no: 0}
         exc = ev_group.exception_line() if ev_group.multiline else None
         hit = False
         for pat in patterns:
@@ -132,7 +138,7 @@ def analyze(
             if f is None:
                 f = findings[pat.key] = Finding(
                     pat.key, pat.title, pat.signal, pat.severity, pat.advice,
-                    first_index=ev.index, first_seen=ev.timestamp,
+                    first_index=ev.index * EVENT_SPAN + rank.get(match[0], 0), first_seen=ev.timestamp,
                 )
             f.count += 1
             f.last_seen = ev.timestamp or f.last_seen
@@ -220,7 +226,8 @@ def _utc(when: datetime) -> tuple[datetime, bool]:
 def time_order(analysis: Analysis) -> tuple[list[str], dict]:
     """Findings ordered by their earliest timestamp; findings without one follow in text order.
 
-    Across several files, text order is not time order, so bundles use this ordering.
+    Across several files, text order is not time order, so bundles use this ordering. Within one
+    timestamp, client-facing results (5xx, 499, rate limiting) follow the findings that share it.
     Returns (order, info) where info says how many findings had no timestamp and whether
     any time without a zone was taken as UTC.
     """
@@ -233,7 +240,8 @@ def time_order(analysis: Analysis) -> tuple[list[str], dict]:
         when, naive = _utc(when)
         assumed |= naive
         timed.append((when, key))
-    timed.sort(key=lambda t: t[0])
+    # within one timestamp, what clients saw (a 5xx, a closed request) is the result of the rest
+    timed.sort(key=lambda t: (t[0], t[1] in OUTCOMES))
     return [k for _, k in timed] + untimed, {"untimed": len(untimed), "assumed_utc": assumed,
                                               "basis": "timestamp" if timed else "position"}
 

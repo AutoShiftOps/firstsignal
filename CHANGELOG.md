@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `permission` is now titled "Access denied", with advice that covers files, roles, database users and HTTP 403
 
 ### Fixed
+- A Python traceback logged under an application log line (`logger.exception`) is no longer reported as a crash; a bare traceback printed by the interpreter still is
+- Findings inside one stack trace are ordered by cause: Python's chain oldest first, Java's deepest `Caused by:` first, the reporting log line last
+- When findings share a second across files, client-facing results (5xx, 499, rate limiting) are placed after the others
+- New phrasings: HikariCP / DBCP / c3p0 pool exhaustion (Connection limit reached), systemd `restart counter is at N` for N ≥ 2 (Restart loop), `timeout has expired` (Timeouts), `request slow` (Slowness reported), PostgreSQL `database system is shut down` (not accepting connections)
 - PostgreSQL rejected sessions (`FATAL:  password authentication failed`, no `pg_hba.conf` entry, unknown role or database) are no longer reported as crashes. New `postgres` rule `pg_connection_rejected` reports them instead; `PANIC` is still a crash
 - "non-fatal" is no longer reported as a crash
 - Pod eviction is only reported with Kubernetes phrasing; cache and session evictions no longer count

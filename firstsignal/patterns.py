@@ -50,17 +50,21 @@ CORE = [
        "File descriptor limit reached. Compare open descriptors with ulimit; look for leaked connections."),
     _p("conn_limit",
        r"\b(too many connections|connection pool (?:exhausted|timeout|is full)"
-       r"|max(?:imum)? (?:number of )?connections? (?:reached|exceeded)|worker_connections are not enough)\b",
+       r"|max(?:imum)? (?:number of )?connections? (?:reached|exceeded)|worker_connections are not enough"
+       r"|connection is not available, request timed out|timeout waiting for (?:idle object|connection from pool)"
+       r"|cannot get a connection, pool error)\b",
        "saturation", "high", "Connection limit reached",
        "A connection limit was hit. Check pool size against concurrent demand and for unreleased connections."),
     _p("timeout",
-       r"\b(timed out|timeout (?:exceeded|expired|while|waiting|error|occurred)|ETIMEDOUT|deadline exceeded"
+       r"\b(timed out|timeout (?:has (?:been )?)?(?:exceeded|expired|while|waiting|error|occurred)|ETIMEDOUT"
+       r"|deadline exceeded"
        r"|i/o timeout|(?:read|write|connect|connection|request|gateway|upstream) timeout)\b",
        "latency", "high", "Timeouts",
        "Timeouts. Check the health and latency of whatever this service calls, then its own saturation."),
     # The log says something was slow. That is a report, not a latency measurement.
     _p("slow",
-       r"\b(slow (?:query|request|response)(?!\s+log\b)|took longer than|response time (?:>|exceeded))",
+       r"\b(slow (?:query|request|response)(?!\s+log\b)|(?:request|query|response|call) (?:was |is )?slow\b"
+       r"|took longer than|response time (?:>|exceeded))",
        "latency", "medium", "Slowness reported",
        "The log reports slowness; it is not a latency measurement. Read the duration in the line, "
        "then correlate with load and recent deploys or query changes."),
@@ -103,7 +107,7 @@ CORE = [
        "The process is crashing. Read the first stack trace, not the last; later ones are often knock-on."),
     _p("restart_loop",
        r"(CrashLoopBackOff|crash loop|back-off restarting|restarting failed|start request repeated too quickly"
-       r"|\brestarting (?:container|service)\b)",
+       r"|\brestarting (?:container|service)\b|restart counter is at (?:[2-9]|\d{2,})\b)",
        "errors", "high", "Restart loop",
        "The service keeps restarting. Find the first failure before the loop began."),
     _p("rate_limited",
@@ -139,7 +143,7 @@ POSTGRES = [
        "errors", "high", "PostgreSQL: connection rejected",
        "PostgreSQL refused a session: bad password, missing pg_hba.conf rule, or unknown role or database. "
        "The server is up; check credentials and config that changed recently.", "postgres"),
-    _p("pg_unavailable", r"the database system is (?:in recovery mode|starting up|shutting down)",
+    _p("pg_unavailable", r"(?:the )?database system is (?:in recovery mode|starting up|shutting down|shut down)",
        "errors", "critical", "PostgreSQL: not accepting connections",
        "The database is restarting or recovering. Check why it went down.", "postgres"),
 ]

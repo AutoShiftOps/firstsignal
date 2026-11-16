@@ -307,26 +307,25 @@ Scored on the [regression corpus](tests/corpus/README.md): 11 synthetic cases mo
 
 | Case | Expected | Found | False positives | Missed | First finding |
 |---|---:|---:|---|---|---|
-| go-panic-after-timeout | 3 | 2 | – | `restart_loop` | ✓ |
+| go-panic-after-timeout | 3 | 3 | – | – | ✓ |
 | healthy-noise | 0 | 0 | – | – | ✓ |
-| java-spring-pool-exhaustion | 5 | 4 | – | `conn_limit` | ✓ |
+| java-spring-pool-exhaustion | 5 | 5 | – | – | ✓ |
 | k8s-node-pressure | 4 | 4 | – | – | ✓ |
-| kafka-consumer-lag | 4 | 3 | – | `timeout` | ✓ |
-| nginx-upstream-timeouts | 6 | 6 | – | – | ✗ `http_5xx` (expected `timeout`) |
-| node-express-heap-oom | 6 | 5 | – | `slow` | ✓ |
+| kafka-consumer-lag | 4 | 4 | – | – | ✓ |
+| nginx-upstream-timeouts | 6 | 6 | – | – | ✓ |
+| node-express-heap-oom | 6 | 6 | – | – | ✓ |
 | postgres-auth-and-connections | 3 | 3 | – | – | ✓ |
-| python-django-handled-traceback | 3 | 3 | `panic_fatal` | – | ✗ `timeout` (expected `conn_refused`) |
+| python-django-handled-traceback | 3 | 3 | – | – | ✓ |
 | redis-mysql-saturation | 4 | 4 | – | – | ✓ |
-| support-bundle-disk-full | 5 | 4 | – | `pg_unavailable` | ✓ |
+| support-bundle-disk-full | 5 | 5 | – | – | ✓ |
 
-Precision 97%, recall 88%, first finding right in 9 of 11 cases, 0 secret leaks.
+Precision 100%, recall 100%, first finding right in 11 of 11 cases, 0 secret leaks.
 
 Read these numbers with care:
 
-- The corpus is small and synthetic, and it was written by the same people who write the rules, so it flatters the tool. Real-log accuracy comes from the held-out corpus and the pilot; it will be published here once measured.
-- **False positive today:** a Python traceback that was logged and handled is reported as "Crashes and fatal errors".
-- **Misses today:** a Hikari "Connection is not available" pool limit, systemd's restart counter, Kafka's "poll timeout has expired" as a timeout, "request slow" phrasing, and PostgreSQL's "database system is shut down".
-- **First finding:** when two findings fall in the same second they are not ordered by cause (nginx 504 versus the upstream timeout behind it), and findings inside one stack trace are not ordered by the line they came from.
+- **They are tuned numbers, not a measure of real-world accuracy.** The first scoring found 1 false positive, 5 misses and 2 wrong first findings (precision 97%, recall 88%, first finding 9 of 11). Those were fixed against this same corpus, so it now flatters the tool. Each fix has tests for near misses, but the honest measure is the held-out corpus and the pilot, which will be published here once measured.
+- The corpus is small and synthetic, and it is written by the same people who write the rules.
+- When findings share a second, client-facing results (5xx, 499, rate limiting) are placed after the others. That is a rule of thumb, not proof of which caused which.
 
 `python scripts/corpus.py` reproduces the table. CI fails if any result on the corpus changes without review.
 

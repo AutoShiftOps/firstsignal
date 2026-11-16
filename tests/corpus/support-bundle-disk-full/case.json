@@ -24,7 +24,8 @@
       "conn_refused": 1,
       "disk_full": 2,
       "http_5xx": 2,
-      "panic_fatal": 1
+      "panic_fatal": 1,
+      "pg_unavailable": 1
     },
     "first": "disk_full",
     "severity": "critical"

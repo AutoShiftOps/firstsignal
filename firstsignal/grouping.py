@@ -40,6 +40,26 @@ class Event:
     def multiline(self) -> bool:
         return len(self.lines) > 1
 
+    def causal_rank(self) -> dict[int, int]:
+        """Order of the lines by when what they describe happened, earliest first.
+
+        The log line that reports an exception is written after it, so it comes last. Python
+        prints a chain oldest first; Java prints the outermost exception first and its deepest
+        "Caused by:" last, and the deepest cause happened first.
+        """
+        body = self.lines[1:]
+        starts = [i for i, (_, raw) in enumerate(body) if _CAUSE.match(_content(raw))]
+        if starts:
+            # sections: [top exception] [cause 1] ... [deepest cause]; deepest first, top last
+            bounds = [0, *starts, len(body)]
+            sections = [body[bounds[i]:bounds[i + 1]] for i in range(len(bounds) - 1)]
+            ordered = [line for section in reversed(sections) for line in section]
+        else:
+            ordered = body
+        rank = {no: i for i, (no, _) in enumerate(ordered)}
+        rank[self.head[0]] = len(ordered)
+        return rank
+
     def exception_line(self) -> tuple[int, str] | None:
         """The line that names the exception: Java's deepest "Caused by:", else the last exception line
         (Python's final line, or the Java exception printed after the message)."""
@@ -57,6 +77,11 @@ def _content(raw: str) -> str:
     if m and line[m.end():m.end() + 1] == " ":
         line = line[m.end() + 1:]
     return line
+
+
+def is_traceback_header(raw: str) -> bool:
+    """Python's "Traceback (most recent call last):" line."""
+    return bool(_PY_TRACEBACK.match(_content(raw)))
 
 
 def is_frame(raw: str) -> bool:

@@ -17,6 +17,7 @@
   "snapshot": {
     "findings": {
       "panic_fatal": 2,
+      "restart_loop": 1,
       "timeout": 2
     },
     "first": "timeout",
