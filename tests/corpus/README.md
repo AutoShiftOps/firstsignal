@@ -18,6 +18,8 @@ Labelled log samples that firstsignal is scored against. Each case is a folder:
   a traceback that was logged and handled.
 - **first**: the finding an engineer would start from, using timestamps across files. When two
   findings share a second, it is the one that caused the other.
+- **first_location** (bundle cases): the `file:line` of that finding's earliest evidence. The first
+  finding only counts as right when the report cites this line.
 
 `snapshot` is what firstsignal reports today. Accuracy compares `snapshot` with `truth`;
 `tests/test_corpus.py` fails whenever a snapshot changes, so every change in results is reviewed.

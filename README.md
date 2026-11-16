@@ -146,8 +146,7 @@ firstsignal archive ticket-4821.zip
 
 `archive` is for log bundles customers attach to support tickets. It reads every log file inside without extracting anything, and tells you where to look:
 
-<p align="center"><img src="https://raw.githubusercontent.com/AutoShiftOps/firstsignal/main/docs/img/terminal-support-bundle.png" alt="firstsignal archive on a support bundle: disk full in the PostgreSQL log came first, then the database stopped accepting connections, then the app saw refused connections and returned 5xx; every finding cites file and line" width="700"></p>
-
+<p align="center"><img src="https://raw.githubusercontent.com/AutoShiftOps/firstsignal/main/docs/img/terminal-support-bundle.png" alt="firstsignal archive on a support bundle: disk full, first seen in syslog, came first; then PostgreSQL crashed and stopped accepting connections, and the app saw refused connections and returned 5xx; every finding cites file and line" width="700"></p>
 
 - **Every finding cites `file:line`**, so you can quote the evidence back. Line numbers stay right even when only the end of a large file is read.
 - **Findings are ordered by time across files**, not by file order. ISO, nginx, syslog, Apache access log and JSON epoch times are understood. Times without a zone are taken as UTC, and the report says so; syslog times carry no year, so the current year is assumed.

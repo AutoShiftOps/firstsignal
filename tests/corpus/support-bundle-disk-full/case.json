@@ -12,7 +12,8 @@
       "panic_fatal",
       "pg_unavailable"
     ],
-    "first": "disk_full"
+    "first": "disk_full",
+    "first_location": "system/syslog:2"
   },
   "must_not_leak": [
     "abc123",
@@ -28,6 +29,7 @@
       "pg_unavailable": 1
     },
     "first": "disk_full",
-    "severity": "critical"
+    "severity": "critical",
+    "first_location": "system/syslog:2"
   }
 }

@@ -13,7 +13,8 @@
       "nginx_upstream_timeout",
       "timeout"
     ],
-    "first": "timeout"
+    "first": "timeout",
+    "first_location": "error.log:2"
   },
   "must_not_leak": [],
   "notes": "Access-log 5xx lines carry the status after the request line, not after 'HTTP '.",
@@ -27,6 +28,7 @@
       "timeout": 2
     },
     "first": "timeout",
-    "severity": "high"
+    "severity": "high",
+    "first_location": "error.log:2"
   }
 }

@@ -40,7 +40,8 @@ class Finding:
     first_seen: str | None = None
     last_seen: str | None = None
     examples: list[str] = field(default_factory=list)
-    # set only when analyze(track_locations=True): "file:line" for the first match and each example
+    # set only when analyze(track_locations=True): "file:line" of the earliest match (by timestamp when
+    # there is one, else the first in the text) and of each example
     first_location: str | None = None
     locations: list[str] = field(default_factory=list)
     earliest: str | None = None   # the earliest timestamp among all matches, not just the first line
@@ -158,13 +159,13 @@ def analyze(
                     f.locations.append(where)
             when = parse_ts(ev.timestamp)
             if when is not None:
+                when = _utc(when)[0]          # same rule as time_order: no zone means UTC
                 prev = earliest.get(pat.key)
-                try:
-                    if prev is None or when < prev:
-                        earliest[pat.key] = when
-                        f.earliest = ev.timestamp
-                except TypeError:  # naive and aware timestamps cannot be compared
-                    pass
+                if prev is None or when < prev:
+                    earliest[pat.key] = when
+                    f.earliest = ev.timestamp
+                    if track_locations:
+                        f.first_location = where   # cite the earliest occurrence, not the first file read
         matched_lines += n_lines if hit else 0
         if hit or LEVEL_RANK[ev.level] >= LEVEL_RANK["unknown"]:
             repeats[normalize_line(redactor(ev.text))[:240]] += 1
@@ -185,6 +186,9 @@ def analyze(
     for done in grouper.flush():
         handle(done)
 
+    for f in findings.values():
+        if f.earliest:
+            f.first_seen = f.earliest   # first in time, which is what every view shows as "first seen"
     order = sorted(findings, key=lambda k: findings[k].first_index)
     ranked = sorted(findings.values(), key=lambda f: (-SEVERITY_RANK[f.severity], -f.count))
     signals = {
