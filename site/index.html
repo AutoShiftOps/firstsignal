@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>firstsignal: read-only incident triage for logs</title>
-<meta name="description" content="firstsignal reads your logs during an incident and tells you what went wrong, in what order, and which safe checks to run next. systemd, Docker, Kubernetes and files. Open source, read-only, no account.">
+<meta name="description" content="firstsignal reads your logs during an incident and tells you what went wrong, in what order, and which safe checks to run next. systemd, Docker, Podman, Kubernetes, files and customer support bundles. Open source, read-only, no account.">
 <link rel="canonical" href="https://firstsignal.autoshiftops.com/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="logo.svg">
@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"firstsignal","applicationCategory":"DeveloperApplication","operatingSystem":"Linux, macOS, Windows","description":"Read-only incident triage for logs: systemd, Docker, Kubernetes and files, mapped to the Four Golden Signals.","url":"https://firstsignal.autoshiftops.com/","codeRepository":"https://github.com/AutoShiftOps/firstsignal","license":"https://opensource.org/licenses/MIT","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"firstsignal","applicationCategory":"DeveloperApplication","operatingSystem":"Linux, macOS, Windows","description":"Read-only incident triage for logs: systemd, Docker, Podman, Kubernetes, files and support bundles, mapped to the Four Golden Signals.","url":"https://firstsignal.autoshiftops.com/","codeRepository":"https://github.com/AutoShiftOps/firstsignal","license":"https://opensource.org/licenses/MIT","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
 </script>
 <style>
 /* Layout: a sticky header, then one 1040px column. The hero pairs the thesis with a to-scale
@@ -224,7 +224,7 @@ section { padding-block: 56px; border-top: 1px solid var(--line); }
           <a href="viewer.html">See an example report</a>
         </div>
         <ul class="chips" aria-label="Works with">
-          <li>systemd</li><li>Docker</li><li>Kubernetes</li><li>files &amp; stdin</li><li>Linux · macOS · Windows</li><li>no account</li>
+          <li>systemd</li><li>Docker &amp; Podman</li><li>Kubernetes</li><li>files &amp; stdin</li><li>support bundles</li><li>Linux · macOS · Windows</li><li>no account</li>
         </ul>
       </div>
 
@@ -258,13 +258,14 @@ section { padding-block: 56px; border-top: 1px solid var(--line); }
         <div>
           <h2 id="h-sources">One command per source</h2>
           <p>Each collector only reads. External tools run with a fixed argument list and no shell, and anything that looks like an injected option is rejected.</p>
+          <p>Tested on every change on Ubuntu, Fedora, Rocky Linux 8 and 9, Red Hat UBI 9, macOS and Windows. On RHEL-family systems, install Python 3.11 from <code>dnf</code> first.</p>
           <p>Plain text, JSON lines, logfmt and kubectl prefixes are all parsed, stack traces count as one event, and common timestamp formats are understood. Health-check lines are dropped unless they report an error.</p>
           <p>For support teams: point it at the bundle a customer attached to a ticket. It never touches the customer's systems.</p>
         </div>
         <div class="panel-stack">
           <div class="tabs" role="tablist" aria-label="Log sources">
             <button type="button" role="tab" id="tab-k8s" aria-controls="p-k8s" aria-selected="true">Kubernetes</button>
-            <button type="button" role="tab" id="tab-docker" aria-controls="p-docker" aria-selected="false" tabindex="-1">Docker</button>
+            <button type="button" role="tab" id="tab-docker" aria-controls="p-docker" aria-selected="false" tabindex="-1">Docker / Podman</button>
             <button type="button" role="tab" id="tab-journal" aria-controls="p-journal" aria-selected="false" tabindex="-1">systemd</button>
             <button type="button" role="tab" id="tab-file" aria-controls="p-file" aria-selected="false" tabindex="-1">File / stdin</button>
             <button type="button" role="tab" id="tab-bundle" aria-controls="p-bundle" aria-selected="false" tabindex="-1">Bundle</button>
@@ -276,7 +277,10 @@ firstsignal k8s --pod deploy/api -n prod --since 30m
 <span class="c"># the container that just crashed</span>
 firstsignal k8s -l app=api -n prod --previous</pre></div>
           <div class="term" role="tabpanel" id="p-docker" aria-labelledby="tab-docker" hidden><pre><span class="c"># stdout and stderr, with timestamps</span>
-firstsignal docker --container my-api --since 1h</pre></div>
+firstsignal docker --container my-api --since 1h
+
+<span class="c"># Podman (RHEL, Fedora); docker also falls back to it</span>
+firstsignal podman --container my-api --since 1h</pre></div>
           <div class="term" role="tabpanel" id="p-journal" aria-labelledby="tab-journal" hidden><pre>firstsignal journal --unit nginx --since "30 min ago" --packs core,nginx</pre></div>
           <div class="term" role="tabpanel" id="p-file" aria-labelledby="tab-file" hidden><pre>firstsignal file --path /var/log/app.log
 firstsignal file --path archive.log.gz
