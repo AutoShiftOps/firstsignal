@@ -37,6 +37,8 @@ class Result:
     first: str | None
     severity: str
     leaks: list[str] = field(default_factory=list)
+    first_location: str | None = None          # where the first finding's evidence is (archive cases)
+    truth_location: str | None = None
 
     @property
     def true_positives(self) -> set[str]:
@@ -52,10 +54,14 @@ class Result:
 
     @property
     def first_ok(self) -> bool:
-        return self.first == self.truth_first
+        located = self.truth_location is None or self.first_location == self.truth_location
+        return self.first == self.truth_first and located
 
     def snapshot(self) -> dict:
-        return {"findings": dict(sorted(self.found.items())), "first": self.first, "severity": self.severity}
+        snap = {"findings": dict(sorted(self.found.items())), "first": self.first, "severity": self.severity}
+        if self.first_location:
+            snap["first_location"] = self.first_location
+        return snap
 
 
 def cases(corpus: Path) -> list[Path]:
@@ -83,14 +89,18 @@ def run_case(case_dir: Path, workdir: Path) -> Result:
     text = out.getvalue()
     report = json.loads(text)
     order = report["order_of_first_appearance"]
+    first = order[0] if order else None
+    location = report["findings"][first].get("first_location") if first else None
     return Result(
         name=case_dir.name,
         truth=set(meta["truth"]["findings"]),
         truth_first=meta["truth"]["first"],
         found={k: v["count"] for k, v in report["findings"].items()},
-        first=order[0] if order else None,
+        first=first,
         severity=report["severity"],
         leaks=[s for s in meta.get("must_not_leak", []) if s in text],
+        first_location=location,
+        truth_location=meta["truth"].get("first_location"),
     )
 
 
@@ -117,7 +127,12 @@ def summary(results: list[Result]) -> dict:
 def report(results: list[Result]) -> str:
     lines = ["| Case | Expected | Found | False positives | Missed | First finding |", "|---|---:|---:|---|---|---|"]
     for r in results:
-        first = "✓" if r.first_ok else f"✗ `{r.first}` (expected `{r.truth_first}`)"
+        if r.first_ok:
+            first = "✓"
+        elif r.first != r.truth_first:
+            first = f"✗ `{r.first}` (expected `{r.truth_first}`)"
+        else:
+            first = f"✗ cites `{r.first_location}` (expected `{r.truth_location}`)"
         lines.append(f"| {r.name} | {len(r.truth)} | {len(r.true_positives)} "
                      f"| {', '.join(f'`{k}`' for k in sorted(r.false_positives)) or '–'} "
                      f"| {', '.join(f'`{k}`' for k in sorted(r.misses)) or '–'} | {first} |")

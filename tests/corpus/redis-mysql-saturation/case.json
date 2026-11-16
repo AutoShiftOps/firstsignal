@@ -11,7 +11,8 @@
       "redis_oom",
       "timeout"
     ],
-    "first": "redis_oom"
+    "first": "redis_oom",
+    "first_location": "app.log:1"
   },
   "must_not_leak": [],
   "notes": "Redis's own timestamp format ('09 Oct 2026 16:21:30.551') is not parsed; those lines carry no finding here. 'Lock wait timeout exceeded' is a timeout.",
@@ -23,6 +24,7 @@
       "timeout": 1
     },
     "first": "redis_oom",
-    "severity": "critical"
+    "severity": "critical",
+    "first_location": "app.log:1"
   }
 }

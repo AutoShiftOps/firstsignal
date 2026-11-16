@@ -7,8 +7,9 @@
 # firstsignal only reads logs. The cluster credentials need nothing beyond `get` and `list`
 # on pods and `get` on pods/log in the namespace.
 #
-# Reports mask secrets, but masking is pattern-based. On a public repository, review whether
-# the job summary and artifact should be visible to everyone before enabling this.
+# Reports mask secrets (known shapes plus an entropy check), but masking cannot catch everything.
+# On a public repository, review whether the job summary and artifact should be visible to
+# everyone before enabling this.
 
 name: Post-deploy log check
 
@@ -40,6 +41,7 @@ jobs:
         run: |
           mkdir -p ~/.kube
           printf '%s' "$KUBECONFIG_DATA" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
 
       - name: Give the new pods time to take traffic
         run: sleep 120
@@ -47,8 +49,9 @@ jobs:
       - name: Triage the new pods' logs
         run: >
           firstsignal k8s -l app=api -n prod --since 5m
-          --packs all --html --out-dir triage --fail-on high
+          --packs all --html --out-dir triage --fail-on high --no-history
         # <- your label selector and namespace. Exit code 3 means high or critical findings.
+        # --no-history: a CI runner is thrown away, so there is no point keeping incident memory.
 
       - name: Add the report to the job summary
         if: always()

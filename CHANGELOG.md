@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Documentation
-- README screenshots of real output: the terminal report with a "Seen before" match, a support-bundle run, the HTML report, and a timeline of the first signal against the loudest one (`docs/img/`)
-- `examples/ci/post-deploy-triage.yml`: a GitHub Actions workflow that checks the new pods' logs after each deploy
-
 ## [0.3.0] - 2026-11-16
 
 Support bundles, stack traces, stricter redaction and published accuracy. Reports now say "earliest observed matching signature" and never claim a root cause outside the labelled AI hypothesis.
@@ -20,6 +16,9 @@ Support bundles, stack traces, stricter redaction and published accuracy. Report
 - CI runs the tests inside Red Hat UBI 9, Rocky Linux 8 and 9, and Fedora, as a non-root user, with Python 3.11 from `dnf` on the RHEL family
 - README: install steps for RHEL, Rocky, AlmaLinux and CentOS Stream
 
+### Fixed (support bundles)
+- A finding's `file:line` and earliest time now come from its earliest occurrence across files. When one file's times had no zone (syslog, nginx) and another's did (PostgreSQL `UTC`), the comparison failed silently and the first file read was cited instead. "First seen" in the terminal, Markdown, JSON and HTML report is now that earliest time too
+
 ### Fixed (platforms)
 - `journal` without permission to read the system journal: journalctl exits 0 with no entries, which was reported as a clean run. It is now an error that says to use `sudo` or join the `systemd-journal` group
 - An unreadable log file (such as `/var/log/messages` on RHEL) now says to try `sudo`
@@ -28,6 +27,8 @@ Support bundles, stack traces, stricter redaction and published accuracy. Report
 - The former name is gone: the `incopilot` command, `INCOPILOT_*` environment variables, `incopilot.toml` and the `~/.incopilot` history fallback. Use `firstsignal`, `FIRSTSIGNAL_*`, `firstsignal.toml` and `~/.firstsignal`
 
 ### Documentation
+- README screenshots of real output: the terminal report with a "Seen before" match, a support-bundle run, the HTML report, and a timeline of the first signal against the loudest one (`docs/img/`)
+- `examples/ci/post-deploy-triage.yml`: a GitHub Actions workflow that checks the new pods' logs after each deploy
 - `docs/PILOT.md`: a free 30-day pilot: rules, a five-minute start, and a feedback form
 - README, ROADMAP, product plan, SECURITY and CONTRIBUTING brought up to date; the website shows the support-bundle source
 

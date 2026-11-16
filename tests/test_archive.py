@@ -187,3 +187,17 @@ def test_corrupt_nested_archive_is_skipped_not_fatal(tmp_path):
 def test_more_unsafe_names(tmp_path, name):
     res = _read(_zip(tmp_path / "b.zip", {"ok.log": "ERROR x\n", name: "ERROR y\n"}))
     assert [f.name for f in res.files] == ["ok.log"]
+
+
+def test_finding_cites_its_earliest_occurrence_across_time_zone_styles(tmp_path):
+    # syslog has no zone, PostgreSQL says UTC: the comparison must still work, and the citation
+    # must point at the earlier line even though its file is read second
+    path = _zip(tmp_path / "b.zip", {
+        "db/postgresql.log": "2026-10-11 07:44:58.120 UTC [811] PANIC:  could not write to file: No space left on device\n",
+        "system/syslog": "Oct 11 07:44:52 db01 postgres[811]: ERROR: could not extend file: No space left on device\n",
+    })
+    out = tmp_path / "out"
+    cli.run(["archive", path, "--out-dir", str(out), "--no-history", "-q"])
+    f = json.loads((out / "report.json").read_text(encoding="utf-8"))["findings"]["disk_full"]
+    assert f["first_location"] == "system/syslog:1"
+    assert f["earliest"] == "Oct 11 07:44:52"
