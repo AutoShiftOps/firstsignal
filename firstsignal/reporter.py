@@ -9,7 +9,7 @@ from pathlib import Path
 
 from . import __version__
 from .ai import AIResult
-from .analyzer import Analysis
+from .analyzer import Analysis, earliest_finding
 
 SCHEMA_VERSION = "2"
 SAFETY_NOTE = "Read-only. firstsignal collects and explains; it never changes the systems it reads."
@@ -23,6 +23,18 @@ _HOST_CHECKS = [
 ]
 
 
+def earliest_how(f, info: dict) -> str:
+    """Explain how the earliest finding was chosen."""
+    if info["basis"] != "timestamp":
+        return "first in file order; no timestamps to compare"
+    parts = [f"earliest timestamp {f.earliest}"]
+    if info["assumed_utc"]:
+        parts.append("times without a zone taken as UTC")
+    if info["untimed"]:
+        parts.append(f"{info['untimed']} finding(s) had no timestamp")
+    return "; ".join(parts)
+
+
 def build_meta(source: str, target: str, since: str) -> dict:
     """Describe the run."""
     return {
@@ -34,8 +46,30 @@ def build_meta(source: str, target: str, since: str) -> dict:
     }
 
 
-def safe_next_commands(ctx: dict) -> list[tuple[str, str]]:
+def _archive_commands(ctx: dict, analysis: Analysis | None) -> list[tuple[str, str]]:
+    """Commands that show the lines around each top finding, read straight from the bundle."""
+    if analysis is None:
+        return []
+    path = ctx["archive"]["path"]
+    lower = path.lower()
+    cmds = []
+    for f in list(analysis.findings.values())[:3]:
+        if not f.first_location:
+            continue
+        member, _, line = f.first_location.rpartition(":")
+        if "!/" in member or member.lower().endswith(".gz") or not line.isdigit():
+            continue
+        start, end = max(int(line) - 5, 1), int(line) + 20
+        reader = "unzip -p" if lower.endswith(".zip") else "tar -xOf"
+        cmds.append((f"Context for {f.title}",
+                     f"{reader} {shlex.quote(path)} {shlex.quote(member)} | sed -n '{start},{end}p'"))
+    return cmds
+
+
+def safe_next_commands(ctx: dict, analysis: Analysis | None = None) -> list[tuple[str, str]]:
     """Read-only commands to run next, filled in with the targets that were analyzed."""
+    if "archive" in ctx:
+        return _archive_commands(ctx, analysis)  # host checks would run on the wrong machine
     cmds: list[tuple[str, str]] = []
     if "journal" in ctx:
         unit = shlex.quote(ctx["journal"]["unit"])
@@ -117,9 +151,24 @@ def build_report_md(meta: dict, analysis: Analysis, commands, ai: AIResult | Non
     else:
         out.append("No pattern matched.")
 
+    key, info = earliest_finding(analysis)
+    if key and st.get("archive"):
+        f = analysis.findings[key]
+        out += ["", "## Earliest observed matching signature", "",
+                f"**{f.title}** ({_code(f.key)}) at {_code(f.first_location or 'n/a')} "
+                f"({earliest_how(f, info)}).",
+                "This is the earliest match in the supplied logs, not proof of root cause. "
+                "Clocks on different machines may disagree."]
+        out += ["", "## Where to look", "", "| Finding | Severity | Count | First match | Earliest time |",
+                "|---|---|---:|---|---|"]
+        for f in analysis.findings.values():
+            out.append(f"| {f.title} | {_ICON[f.severity]} {f.severity} | {f.count} "
+                       f"| {_code(f.first_location or 'n/a')} | {f.earliest or 'n/a'} |")
+
     if len(analysis.order) > 1:
         out += ["", "## Order of first appearance", "",
-                "Earlier patterns are more likely causes; later ones are often knock-on effects.", ""]
+                "Earlier patterns are more likely causes; later ones are often knock-on effects."
+                + (" Ordered by timestamp across files." if st.get("archive") else ""), ""]
         out += [f"{i}. {analysis.findings[k].title} ({_code(k)})" for i, k in enumerate(analysis.order, 1)]
 
     if seen:
@@ -154,8 +203,22 @@ def build_report_md(meta: dict, analysis: Analysis, commands, ai: AIResult | Non
         out += ["", "## Examples", ""]
         for f in analysis.findings.values():
             out.append(f"**{f.title}**")
-            out += [f"- {_code(ex[:220])}" for ex in f.examples]
+            for i, ex in enumerate(f.examples):
+                where = f"{_code(f.locations[i])} " if i < len(f.locations) else ""
+                out.append(f"- {where}{_code(ex[:220])}")
             out.append("")
+
+    arc = st.get("archive")
+    if arc:
+        out += ["", "## Files in the bundle", "",
+                f"{len(arc['files'])} log file(s) analyzed, {len(arc['skipped'])} skipped, "
+                f"{arc['total_mb']} MB read.", ""]
+        out += [f"- {_code(x['name'])}" + (" (last part only)" if x["truncated"] else "") for x in arc["files"]]
+        if arc["skipped"]:
+            out += ["", "Skipped:", ""]
+            out += [f"- {_code(x['name'])}: {x['reason']}" for x in arc["skipped"][:50]]
+            if len(arc["skipped"]) > 50:
+                out.append(f"- ... and {len(arc['skipped']) - 50} more (see report.json)")
 
     out += ["---", f"_{SAFETY_NOTE}_", ""]
     return "\n".join(out)
@@ -174,6 +237,7 @@ def build_report_json(meta: dict, analysis: Analysis, commands, ai: AIResult | N
             f.key: {
                 "title": f.title, "signal": f.signal, "severity": f.severity, "count": f.count,
                 "first_seen": f.first_seen, "last_seen": f.last_seen, "examples": f.examples,
+                "earliest": f.earliest, "first_location": f.first_location, "locations": f.locations,
             }
             for f in analysis.findings.values()
         },
@@ -188,8 +252,35 @@ def build_report_json(meta: dict, analysis: Analysis, commands, ai: AIResult | N
     }
 
 
-def write_outputs(out_dir: str, markdown: str, report: dict, html: str | None = None) -> dict[str, str]:
-    """Write report.md and report.json (and report.html when given) into out_dir."""
+def build_ticket_note(meta: dict, analysis: Analysis, limit: int = 5) -> str:
+    """A short, redacted summary to paste into a support ticket as an internal note."""
+    st = analysis.stats
+    arc = st.get("archive") or {}
+    out = [f"firstsignal triage of {meta['target']}: overall severity {analysis.severity.upper()}",
+           f"{len(arc.get('files', []))} log file(s), {st['lines_analyzed']} lines analyzed, "
+           f"{len(arc.get('skipped', []))} file(s) skipped.", ""]
+    key, info = earliest_finding(analysis)
+    if key:
+        f = analysis.findings[key]
+        out.append(f"Earliest observed matching signature: {f.title} at {f.first_location or 'n/a'} "
+                   f"({earliest_how(f, info)}).")
+        out += ["", "Top findings:"]
+        for f in list(analysis.findings.values())[:limit]:
+            out.append(f"- [{f.severity}] {f.title}: {f.count}x, first at {f.first_location or 'n/a'}")
+            if f.examples:
+                out.append(f"    {f.examples[0][:200]}")
+        steps = suggest_next_steps(analysis)[:3]
+        out += ["", "Suggested next steps:"] + [f"- {s}" for s in steps]
+    else:
+        out.append("No known failure pattern matched. Read the top repeating lines in the full report.")
+    out += ["", "Advisory: pattern matches in the supplied logs, not a confirmed root cause. "
+            "Secrets, emails and IP addresses were masked; review before sharing outside the team."]
+    return "\n".join(out) + "\n"
+
+
+def write_outputs(out_dir: str, markdown: str, report: dict, html: str | None = None,
+                  note: str | None = None) -> dict[str, str]:
+    """Write report.md and report.json (and report.html, ticket-note.md when given) into out_dir."""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     md_path, js_path = out / "report.md", out / "report.json"
@@ -200,4 +291,8 @@ def write_outputs(out_dir: str, markdown: str, report: dict, html: str | None = 
         html_path = out / "report.html"
         html_path.write_text(html, encoding="utf-8")
         paths["report_html"] = str(html_path)
+    if note is not None:
+        note_path = out / "ticket-note.md"
+        note_path.write_text(note, encoding="utf-8")
+        paths["ticket_note"] = str(note_path)
     return paths

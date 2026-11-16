@@ -7,14 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `firstsignal archive BUNDLE`: analyze every log file in a customer support bundle (.zip, .tar, .tar.gz, .tgz) without extracting it. Findings cite `file:line`, are ordered by time across files, and a redacted `ticket-note.md` is written for the support ticket. IP addresses are masked by default in this mode. Unsafe members (path traversal, links, encrypted, suspicious compression ratio) are skipped and listed; size, entry and nesting limits stop zip bombs
+- JSON report: each finding has `earliest`, `first_location` and `locations` (set for bundles)
+- Redaction: an entropy check masks long random-looking tokens (API keys, session secrets) that match no known shape. UUIDs, paths, short ids and resource names such as pod names are kept. Hex of 32 or more characters is masked, so long hashes and container ids are masked too
+- Tests that check every output for leaks: console, Markdown, JSON, HTML, AI payload and incident history
+
 ### Fixed
 - Redaction: a private key in the logs is now masked as a whole block. Before, only the `BEGIN` line was masked and the key itself was printed
 - Redaction: `Authorization` headers are masked at any length (`Bearer abc123` was not masked)
 - Redaction: "basic authentication" and similar prose are no longer masked by mistake
-
-### Added
-- Redaction: an entropy check masks long random-looking tokens (API keys, session secrets) that match no known shape. UUIDs, paths, short ids and resource names such as pod names are kept. Hex of 32 or more characters is masked, so long hashes and container ids are masked too
-- Tests that check every output for leaks: console, Markdown, JSON, HTML, AI payload and incident history
 
 ## [0.2.1] - 2026-11-12
 
