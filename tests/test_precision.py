@@ -106,7 +106,7 @@ def test_report_does_not_claim_cause(example_log, tmp_path, monkeypatch, capsys)
     monkeypatch.chdir(tmp_path)
     cli.run(["file", "--path", str(example_log), "--no-history"])
     console = capsys.readouterr().out.lower()
-    report = (tmp_path / "out" / "report.md").read_text().lower()
+    report = (tmp_path / "out" / "report.md").read_text(encoding="utf-8").lower()
     for text in (console, report):
         assert "root cause" not in text
         assert "more likely cause" not in text

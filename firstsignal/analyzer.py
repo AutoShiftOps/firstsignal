@@ -146,7 +146,7 @@ def analyze(
             if len(f.examples) < max_examples:
                 example = head_raw.strip()
                 if shown[0] != head_no:
-                    example = f"{example} ⏎ {shown[1].strip()}"
+                    example = f"{example} | {shown[1].strip()}"
                 f.examples.append(redactor(example)[:300])
                 if track_locations:
                     f.locations.append(where)

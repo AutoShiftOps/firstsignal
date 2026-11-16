@@ -69,6 +69,7 @@ def test_java_example_is_the_deepest_cause():
     assert f.count == 1 and f.first_location == "line 7"
     assert f.examples[0].endswith("Caused by: java.net.ConnectException: Connection refused")
     assert f.examples[0].startswith("2026-11-14 09:41:25,118 ERROR")
+    assert f.examples[0].isascii()   # plain separator: safe on legacy Windows consoles
 
 
 def test_python_chained_traceback_is_one_crash_with_its_exceptions():
@@ -133,5 +134,5 @@ def test_trace_in_a_bundle_cites_the_exception_line(tmp_path):
         z.writestr("app/server.log", "2026-11-14 09:41:20,000 INFO app: start\n" + JAVA)
     out = tmp_path / "out"
     cli.run(["archive", str(path), "--out-dir", str(out), "--no-history", "--packs", "all", "-q"])
-    f = json.loads((out / "report.json").read_text())["findings"]["conn_refused"]
+    f = json.loads((out / "report.json").read_text(encoding="utf-8"))["findings"]["conn_refused"]
     assert f["first_location"] == "app/server.log:8" and f["count"] == 1

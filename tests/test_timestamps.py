@@ -69,7 +69,7 @@ def test_archive_orders_nginx_and_syslog_by_time(tmp_path):
             f"{d:%b} {d.day:2d} 09:41:20 db01 kernel: Out of memory: Killed process 42\n".encode()))
     out = tmp_path / "out"
     cli.run(["archive", str(path), "--out-dir", str(out), "--no-history", "--packs", "all", "-q"])
-    report = json.loads((out / "report.json").read_text())
+    report = json.loads((out / "report.json").read_text(encoding="utf-8"))
     order = report["order_of_first_appearance"]
     assert order.index("oom_kill") < order.index("nginx_upstream_timeout") < order.index("http_5xx")
     assert all(report["findings"][k]["earliest"] for k in order)

@@ -108,7 +108,7 @@ def test_truncated_file_keeps_real_line_numbers(tmp_path):
     out = tmp_path / "out"
     assert cli.run(["archive", path, "--max-bytes", "4000", "--out-dir", str(out), "--no-history", "-q"]) in (
         cli.EXIT_OK, cli.EXIT_THRESHOLD)
-    report = json.loads((out / "report.json").read_text())
+    report = json.loads((out / "report.json").read_text(encoding="utf-8"))
     assert report["findings"]["conn_refused"]["first_location"] == "app.log:1991"
     assert report["stats"]["archive"]["files"][0]["truncated"] is True
 
@@ -153,14 +153,14 @@ def test_cli_archive_end_to_end(tmp_path, capsys):
     out = tmp_path / "out"
     cli.run(["archive", path, "--out-dir", str(out), "--no-history", "--packs", "all"])
     console = capsys.readouterr().out
-    report = json.loads((out / "report.json").read_text())
-    note = (out / "ticket-note.md").read_text()
+    report = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    note = (out / "ticket-note.md").read_text(encoding="utf-8")
     # ordered by time across files: Postgres (09:41:02) comes before the API errors (09:41:21)
     assert report["order_of_first_appearance"][0] == "pg_too_many_clients"
     assert "Earliest observed matching signature: PostgreSQL" in note
     assert "db/postgresql.log.1.gz:1" in note and "app/api.log:1" in note
     # customer bundles mask IP addresses by default
-    for text in (console, note, (out / "report.md").read_text(), json.dumps(report)):
+    for text in (console, note, (out / "report.md").read_text(encoding="utf-8"), json.dumps(report)):
         assert "10.0.3.17" not in text
     assert "Earliest observed matching signature" in console
     assert report["safe_next_commands"][0]["cmd"].startswith("unzip -p ")

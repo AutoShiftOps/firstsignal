@@ -52,8 +52,8 @@ def test_reports_console_and_history_are_clean(secret_log, tmp_path, capsys):
     captured = capsys.readouterr()
     _assert_clean(captured.out + captured.err, "console")
     for name in ("report.md", "report.json", "report.html"):
-        _assert_clean((tmp_path / "out" / name).read_text(), name)
-    _assert_clean(history.read_text(), "history")
+        _assert_clean((tmp_path / "out" / name).read_text(encoding="utf-8"), name)
+    _assert_clean(history.read_text(encoding="utf-8"), "history")
 
 
 def test_json_stdout_is_clean(secret_log, capsys):
