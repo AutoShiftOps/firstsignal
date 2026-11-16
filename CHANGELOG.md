@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Naming a pattern pack twice no longer counts every match twice
 
 ### Added
+- Timestamps in more formats are understood, so findings order correctly in time across files: nginx error log and Go (`2026/11/14 09:41:25`), syslog and journalctl (`Nov 14 09:41:25`; the year is inferred), Apache and nginx access logs (`[14/Nov/2026:09:41:25 +0000]`) and JSON epoch seconds or milliseconds. ISO times with any fraction length, comma fractions and `+0100` offsets now parse on Python 3.10 too
 - `firstsignal archive BUNDLE`: analyze every log file in a customer support bundle (.zip, .tar, .tar.gz, .tgz) without extracting it. Findings cite `file:line`, are ordered by time across files, and a redacted `ticket-note.md` is written for the support ticket. IP addresses are masked by default in this mode. Unsafe members (path traversal, links, encrypted, suspicious compression ratio) are skipped and listed; size, entry and nesting limits stop zip bombs
 - JSON report: each finding has `earliest`, `first_location` and `locations` (set for bundles)
 - Redaction: an entropy check masks long random-looking tokens (API keys, session secrets) that match no known shape. UUIDs, paths, short ids and resource names such as pod names are kept. Hex of 32 or more characters is masked, so long hashes and container ids are masked too

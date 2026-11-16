@@ -5,8 +5,16 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 
-TS_RE = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2})?")
+TS_RE = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2}| ?UTC\b)?")
+# Other common shapes. Each is tried only if the ISO form is absent.
+_SLASH_TS = re.compile(r"\b\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?")          # nginx error log, Go log
+_CLF_TS = re.compile(r"\[(\d{2}/[A-Z][a-z]{2}/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4})\]")  # Apache / nginx access
+_SYSLOG_TS = re.compile(r"^(?:<\d+>)?([A-Z][a-z]{2} [ \d]\d \d{2}:\d{2}:\d{2})\b")      # syslog, journalctl default
+_ISO_PARTS = re.compile(r"^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:[.,](\d+))?"
+                        r"\s*(Z|UTC|[+-]\d{2}:?\d{2})?$")
+_EPOCH = re.compile(r"^\d{10}(?:\d{3})?(?:\.\d+)?$")                                    # JSON ts in seconds or ms
 _K8S_PREFIX_RE = re.compile(r"^\[[^\]\s]+\]\s+")
 _LEVEL_KV_RE = re.compile(r"\b(?:level|lvl|severity)=\"?([A-Za-z]+)")
 _LEVEL_BRACKET_RE = re.compile(r"\[(emerg|alert|crit|error|warn|notice|info|debug)\]")
@@ -94,6 +102,61 @@ def _from_json(obj: dict) -> tuple[str, str, str | None]:
     return " ".join(parts), normalize_level(_first(obj, _LEVEL_KEYS)), (str(ts) if ts is not None else None)
 
 
+def _other_ts(line: str) -> str | None:
+    """Find a non-ISO timestamp: syslog at the start of the line, nginx/Go or Apache anywhere."""
+    for rx in (_SYSLOG_TS, _CLF_TS):
+        m = rx.search(line)
+        if m:
+            return m.group(1)
+    m = _SLASH_TS.search(line)
+    return m.group(0) if m else None
+
+
+def _iso(text: str) -> datetime:
+    """ISO-like timestamps on every supported Python (3.10's fromisoformat is strict about fractions and zones)."""
+    m = _ISO_PARTS.match(text)
+    if not m:
+        raise ValueError(text)
+    y, mo, d, h, mi, sec, frac, zone = m.groups()
+    micro = int((frac or "0")[:6].ljust(6, "0"))
+    tz = None
+    if zone in ("Z", "UTC"):
+        tz = timezone.utc
+    elif zone:
+        sign = 1 if zone[0] == "+" else -1
+        digits = zone[1:].replace(":", "")
+        tz = timezone(sign * timedelta(hours=int(digits[:2]), minutes=int(digits[2:])))
+    return datetime(int(y), int(mo), int(d), int(h), int(mi), int(sec), micro, tzinfo=tz)
+
+
+def to_datetime(ts, now: datetime | None = None) -> datetime | None:
+    """Turn a timestamp found in a log into a datetime, or None if it is not one we understand.
+
+    Times without a zone come back naive. Syslog times have no year: the current year is used,
+    or last year when that would put the line more than a day in the future.
+    """
+    if ts is None:
+        return None
+    text = str(ts).strip()
+    try:
+        if _EPOCH.match(text):
+            value = float(text)
+            return datetime.fromtimestamp(value / 1000 if value > 1e11 else value, tz=timezone.utc)
+        if "/" in text and ":" in text and text[2:3] == "/":       # 14/Nov/2026:09:41:25 +0000
+            return datetime.strptime(text, "%d/%b/%Y:%H:%M:%S %z")
+        if text[4:5] == "/":                                        # 2026/11/14 09:41:25
+            return _iso(text.replace("/", "-"))
+        if text[:3].isalpha():                                      # Nov 14 09:41:25
+            now = now or datetime.now()
+            when = datetime.strptime(f"{now.year} {' '.join(text.split())}", "%Y %b %d %H:%M:%S")
+            if when > now.replace(tzinfo=None) + timedelta(days=1):
+                when = when.replace(year=now.year - 1)
+            return when
+        return _iso(text)
+    except (ValueError, OverflowError, OSError):
+        return None
+
+
 def parse_line(raw: str, index: int = 0) -> LogEvent:
     """Parse one line. Never raises: anything unrecognized is treated as plain text."""
     line = raw.strip()
@@ -115,5 +178,5 @@ def parse_line(raw: str, index: int = 0) -> LogEvent:
 
     if ts is None:
         m = TS_RE.search(line)
-        ts = m.group(0) if m else None
+        ts = m.group(0) if m else _other_ts(body)
     return LogEvent(index, line, line, _plain_level(line), ts)
