@@ -141,7 +141,7 @@ def test_timeout(monkeypatch):
         raise subprocess.TimeoutExpired(cmd, kw["timeout"])
     monkeypatch.setattr(collectors.subprocess, "run", slow)
     with pytest.raises(CollectorError, match="did not finish"):
-        collectors.from_docker("api", timeout=1)
+        collectors.from_docker("api", timeout=1, engine="docker")
 
 
 def test_nonzero_exit_reports_last_stderr_line(monkeypatch):

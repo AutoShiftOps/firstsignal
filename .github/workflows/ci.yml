@@ -59,7 +59,7 @@ jobs:
           - { name: "fedora", image: "fedora:latest", python: python3 }
     steps:
       - name: Install Python and git with dnf
-        run: dnf install -y ${{ matrix.python }} ${{ matrix.python }}-pip git shadow-utils
+        run: dnf install -y ${{ matrix.python }} ${{ matrix.python }}-pip git shadow-utils util-linux
       - uses: actions/checkout@v4
       # run as an ordinary user, as people do, so file permissions behave as they will for them
       - name: Install and test as a non-root user

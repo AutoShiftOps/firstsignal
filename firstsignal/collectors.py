@@ -101,12 +101,9 @@ def container_engine(preferred: str = "auto") -> str:
 def from_docker(container: str, since: str = "1h", timeout: int = DEFAULT_TIMEOUT, engine: str = "auto") -> str:
     """Read a container's logs with docker or podman (same flags). App stderr arrives on stderr,
     so both streams are kept."""
-    return _run(
-        [container_engine(engine), "logs", "--timestamps", "--since", _safe(since, "since"),
-         _safe(container, "container")],
-        timeout,
-        merge_stderr=True,
-    )
+    since, container = _safe(since, "since"), _safe(container, "container")   # validate before anything runs
+    return _run([container_engine(engine), "logs", "--timestamps", "--since", since, container],
+                timeout, merge_stderr=True)
 
 
 def from_k8s(
