@@ -1,0 +1,64 @@
+# Post-deploy log check with firstsignal (GitHub Actions example).
+#
+# Copy to .github/workflows/ in the repository that deploys your service and adjust the
+# marked lines. After each deploy it reads the new pods' logs, fails the job if anything
+# high or critical shows up, and puts the report in the job summary and as an artifact.
+#
+# firstsignal only reads logs. The cluster credentials need nothing beyond `get` and `list`
+# on pods and `get` on pods/log in the namespace.
+#
+# Reports mask secrets, but masking is pattern-based. On a public repository, review whether
+# the job summary and artifact should be visible to everyone before enabling this.
+
+name: Post-deploy log check
+
+on:
+  workflow_run:
+    workflows: ["Deploy"]          # <- the name of your deploy workflow
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  triage:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install "firstsignal>=0.3.0"
+
+      # Replace with your cloud's login step (aws-actions/configure-aws-credentials plus
+      # `aws eks update-kubeconfig`, azure/aks-set-context, google-github-actions/get-gke-credentials).
+      - name: Configure kubectl
+        env:
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG_DATA }}
+        run: |
+          mkdir -p ~/.kube
+          printf '%s' "$KUBECONFIG_DATA" | base64 -d > ~/.kube/config
+
+      - name: Give the new pods time to take traffic
+        run: sleep 120
+
+      - name: Triage the new pods' logs
+        run: >
+          firstsignal k8s -l app=api -n prod --since 5m
+          --packs all --html --out-dir triage --fail-on high
+        # <- your label selector and namespace. Exit code 3 means high or critical findings.
+
+      - name: Add the report to the job summary
+        if: always()
+        run: |
+          if [ -f triage/report.md ]; then cat triage/report.md >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: firstsignal-report
+          path: triage/
+          if-no-files-found: ignore
+          retention-days: 14

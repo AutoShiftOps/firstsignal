@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+- README screenshots of real output: the terminal report with a "Seen before" match, a support-bundle run, the HTML report, and a timeline of the first signal against the loudest one (`docs/img/`)
+- `examples/ci/post-deploy-triage.yml`: a GitHub Actions workflow that checks the new pods' logs after each deploy
+
 ## [0.3.0] - 2026-11-16
 
 Support bundles, stack traces, stricter redaction and published accuracy. Reports now say "earliest observed matching signature" and never claim a root cause outside the labelled AI hypothesis.
