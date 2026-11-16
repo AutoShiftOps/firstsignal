@@ -37,10 +37,10 @@ Overall severity: CRITICAL
  Timeouts                   latency     high          4
  Connection limit reached   saturation  high          2
  ...
-First to appear: Slow operations
+Earliest observed matching signature: Slowness reported (where to start looking, not proof of cause)
 ```
 
-The report shows that slow queries came first, then the connection pool filled, then timeouts and 5xx, and the out-of-memory kill came last. That ordering is the point: the loudest error is often not the cause.
+The report shows that slow queries came first, then the connection pool filled, then timeouts and 5xx, and the out-of-memory kill came last. That ordering is the point: the loudest error is often not where things started.
 
 ### Platforms
 

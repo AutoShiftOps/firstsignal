@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Wording: reports say "earliest observed matching signature" and that order in the logs is a lead, not proof of cause. Nothing outside the labelled AI hypothesis claims a root cause
+- `slow` is now titled "Slowness reported": the log says something was slow, which is not a latency measurement
+- `permission` is now titled "Access denied", with advice that covers files, roles, database users and HTTP 403
+
+### Fixed
+- PostgreSQL rejected sessions (`FATAL:  password authentication failed`, no `pg_hba.conf` entry, unknown role or database) are no longer reported as crashes. New `postgres` rule `pg_connection_rejected` reports them instead; `PANIC` is still a crash
+- "non-fatal" is no longer reported as a crash
+- Pod eviction is only reported with Kubernetes phrasing; cache and session evictions no longer count
+- "slow query log enabled" and similar settings lines are no longer reported as slowness
+- Naming a pattern pack twice no longer counts every match twice
+
 ### Added
 - `firstsignal archive BUNDLE`: analyze every log file in a customer support bundle (.zip, .tar, .tar.gz, .tgz) without extracting it. Findings cite `file:line`, are ordered by time across files, and a redacted `ticket-note.md` is written for the support ticket. IP addresses are masked by default in this mode. Unsafe members (path traversal, links, encrypted, suspicious compression ratio) are skipped and listed; size, entry and nesting limits stop zip bombs
 - JSON report: each finding has `earliest`, `first_location` and `locations` (set for bundles)

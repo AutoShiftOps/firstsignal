@@ -167,7 +167,8 @@ def build_report_md(meta: dict, analysis: Analysis, commands, ai: AIResult | Non
 
     if len(analysis.order) > 1:
         out += ["", "## Order of first appearance", "",
-                "Earlier patterns are more likely causes; later ones are often knock-on effects."
+                "The earliest match is where to start looking; later ones are often knock-on effects. "
+                "Order in the logs is a lead, not proof of cause."
                 + (" Ordered by timestamp across files." if st.get("archive") else ""), ""]
         out += [f"{i}. {analysis.findings[k].title} ({_code(k)})" for i, k in enumerate(analysis.order, 1)]
 
